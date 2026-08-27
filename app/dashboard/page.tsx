@@ -43,7 +43,7 @@ function DashboardContent() {
     setTimeout(() => {
       const data = lookupVehicle(value);
       setResult(data);
-      addHistory(data.placa);
+      void addHistory(data.placa);
       setLoading(false);
     }, 500);
   }

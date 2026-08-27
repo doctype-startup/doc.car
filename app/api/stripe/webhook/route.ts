@@ -1,0 +1,70 @@
+import { NextRequest, NextResponse } from "next/server";
+import type Stripe from "stripe";
+import { getStripe } from "@/lib/stripe";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+
+function extractPeriodEnd(subscription: Stripe.Subscription) {
+  const item = subscription.items.data[0];
+  const seconds =
+    (item as unknown as { current_period_end?: number })?.current_period_end ??
+    (subscription as unknown as { current_period_end?: number })
+      .current_period_end;
+  return seconds ? new Date(seconds * 1000).toISOString() : null;
+}
+
+async function upsertSubscription(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata?.supabase_user_id;
+  if (!userId) return;
+
+  const supabase = createAdminClient();
+  await supabase.from("subscriptions").upsert(
+    {
+      user_id: userId,
+      stripe_customer_id: String(subscription.customer),
+      stripe_subscription_id: subscription.id,
+      status: subscription.status,
+      price_id: subscription.items.data[0]?.price.id,
+      current_period_end: extractPeriodEnd(subscription),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+}
+
+export async function POST(request: NextRequest) {
+  if (!webhookSecret) {
+    return NextResponse.json(
+      { error: "STRIPE_WEBHOOK_SECRET não configurada" },
+      { status: 500 }
+    );
+  }
+
+  const signature = request.headers.get("stripe-signature");
+  const body = await request.text();
+
+  if (!signature) {
+    return NextResponse.json({ error: "assinatura ausente" }, { status: 400 });
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    return NextResponse.json({ error: `webhook inválido: ${message}` }, { status: 400 });
+  }
+
+  switch (event.type) {
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted":
+      await upsertSubscription(event.data.object as Stripe.Subscription);
+      break;
+    default:
+      break;
+  }
+
+  return NextResponse.json({ received: true });
+}
