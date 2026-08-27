@@ -21,3 +21,14 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `lib/auth.ts` — sessão de demonstração baseada em `localStorage`
 
 A autenticação e a consulta veicular atualmente usam dados simulados; a integração com provedores reais (FIPE, base de débitos/restrições, backend de autenticação) é o próximo passo.
+
+## Deploy
+
+O projeto está conectado à Vercel via este repositório GitHub: todo push no branch `main` gera um deploy automático. Não é necessário publicar manualmente — basta abrir um PR, revisar e fazer merge em `main`.
+
+## Stack
+
+- [Next.js](https://nextjs.org) (App Router) + TypeScript
+- Sem dependências externas de UI (CSS puro em `app/globals.css`)
+- `npm run lint` (ESLint) e `npm run build` rodam automaticamente em cada PR via GitHub Actions (`.github/workflows/ci.yml`)
+
