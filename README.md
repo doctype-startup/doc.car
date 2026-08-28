@@ -53,7 +53,7 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
 ### 3. Configurar na Vercel
 
-Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 6 variáveis acima (Production e Preview) e faça um novo deploy.
+Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 6 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
 
 Sem essas variáveis configuradas, o app sobe normalmente mas login/cadastro e a página de assinatura mostram erro — é esperado até a configuração ser concluída.
 
