@@ -31,11 +31,15 @@ function DashboardContent() {
   const [result, setResult] = useState<VehicleQuery | null>(null);
   const [realData, setRealData] = useState<unknown>(null);
   const [realError, setRealError] = useState("");
+  const [multasData, setMultasData] = useState<unknown>(null);
+  const [multasError, setMultasError] = useState("");
 
   async function runSearch(value: string) {
     setError("");
     setRealData(null);
     setRealError("");
+    setMultasData(null);
+    setMultasError("");
 
     if (!isValidPlaca(value)) {
       setError("Informe uma placa válida, ex: ABC1D23 ou ABC1234.");
@@ -59,6 +63,18 @@ function DashboardContent() {
       }
     } catch {
       setRealError("Não foi possível contatar o provedor de dados.");
+    }
+
+    try {
+      const response = await fetch(`/api/multas?placa=${encodeURIComponent(data.placa)}`);
+      const payload = await response.json();
+      if (response.ok) {
+        setMultasData(payload.data);
+      } else {
+        setMultasError(payload.error || "Consulta de multas indisponível.");
+      }
+    } catch {
+      setMultasError("Não foi possível contatar o provedor de multas.");
     }
 
     setLoading(false);
@@ -128,6 +144,30 @@ function DashboardContent() {
               }}
             >
               {JSON.stringify(realData, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
+
+      {(multasData !== null || multasError) && (
+        <div className="card">
+          <h3>Multas ANTT — Infosimples (modo depuração)</h3>
+          {multasError ? (
+            <p style={{ fontSize: 13, color: "var(--danger)" }}>{multasError}</p>
+          ) : (
+            <pre
+              style={{
+                fontSize: 11,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                maxHeight: 300,
+                overflow: "auto",
+                background: "#f5f6f8",
+                padding: 12,
+                borderRadius: 8,
+              }}
+            >
+              {JSON.stringify(multasData, null, 2)}
             </pre>
           )}
         </div>
