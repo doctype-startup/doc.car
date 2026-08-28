@@ -23,7 +23,7 @@ export type VeiculoReal = {
    * e-mail e qualquer outro dado pessoal do bloco `dados_credfy` do provedor
    * são descartados aqui e nunca saem desta função. */
   proprietarioNome?: string;
-  fipe: { descricao?: string; valor?: number } | null;
+  fipe: { descricao?: string; valor: number } | null;
   restricoes: string[];
   indicadores: {
     rouboFurto: boolean;
