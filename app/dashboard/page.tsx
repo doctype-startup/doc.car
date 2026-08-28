@@ -29,9 +29,13 @@ function DashboardContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VehicleQuery | null>(null);
+  const [realData, setRealData] = useState<unknown>(null);
+  const [realError, setRealError] = useState("");
 
-  function runSearch(value: string) {
+  async function runSearch(value: string) {
     setError("");
+    setRealData(null);
+    setRealError("");
 
     if (!isValidPlaca(value)) {
       setError("Informe uma placa válida, ex: ABC1D23 ou ABC1234.");
@@ -40,12 +44,24 @@ function DashboardContent() {
     }
 
     setLoading(true);
-    setTimeout(() => {
-      const data = lookupVehicle(value);
-      setResult(data);
-      void addHistory(data.placa);
-      setLoading(false);
-    }, 500);
+
+    const data = lookupVehicle(value);
+    setResult(data);
+    void addHistory(data.placa);
+
+    try {
+      const response = await fetch(`/api/veiculo?placa=${encodeURIComponent(data.placa)}`);
+      const payload = await response.json();
+      if (response.ok) {
+        setRealData(payload.data);
+      } else {
+        setRealError(payload.error || "Consulta real indisponível.");
+      }
+    } catch {
+      setRealError("Não foi possível contatar o provedor de dados.");
+    }
+
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -53,13 +69,13 @@ function DashboardContent() {
     if (fromQuery) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- triggers a search when arriving via a ?placa= link
       setPlaca(normalizePlaca(fromQuery));
-      runSearch(fromQuery);
+      void runSearch(fromQuery);
     }
   }, [searchParams]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    runSearch(placa);
+    void runSearch(placa);
   }
 
   return (
@@ -93,14 +109,36 @@ function DashboardContent() {
         </div>
       )}
 
+      {(realData !== null || realError) && (
+        <div className="card">
+          <h3>Dados reais da Infosimples (modo depuração)</h3>
+          {realError ? (
+            <p style={{ fontSize: 13, color: "var(--danger)" }}>{realError}</p>
+          ) : (
+            <pre
+              style={{
+                fontSize: 11,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                maxHeight: 300,
+                overflow: "auto",
+                background: "#f5f6f8",
+                padding: 12,
+                borderRadius: 8,
+              }}
+            >
+              {JSON.stringify(realData, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
+
       {result && (
         <>
           <div className="card">
             <h3>
               Dados do veículo — {result.placa}
-              <span className={`badge ${result.situacao === "Regular" ? "ok" : "warn"}`}>
-                {result.situacao}
-              </span>
+              <span className="badge warn">Dados simulados</span>
             </h3>
             <div className="grid-3">
               <div className="kv">
@@ -135,7 +173,9 @@ function DashboardContent() {
           </div>
 
           <div className="card">
-            <h3>Tabela FIPE</h3>
+            <h3>
+              Tabela FIPE <span className="badge warn">Dados simulados</span>
+            </h3>
             <div className="fipe-value">{currency.format(result.fipe.valor)}</div>
             <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
               Código FIPE {result.fipe.codigo} · Referência {result.fipe.mesReferencia}
@@ -143,7 +183,9 @@ function DashboardContent() {
           </div>
 
           <div className="card">
-            <h3>Débitos</h3>
+            <h3>
+              Débitos <span className="badge warn">Dados simulados</span>
+            </h3>
             {result.debitos.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--muted)" }}>
                 Nenhum débito encontrado para este veículo.
@@ -163,7 +205,9 @@ function DashboardContent() {
           </div>
 
           <div className="card">
-            <h3>Restrições</h3>
+            <h3>
+              Restrições <span className="badge warn">Dados simulados</span>
+            </h3>
             {result.restricoes.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--muted)" }}>
                 Nenhuma restrição encontrada para este veículo.
