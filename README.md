@@ -63,6 +63,20 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
    Depois de adicionar/alterar variáveis na Vercel, é preciso fazer um **novo deploy** para elas passarem a valer — variáveis de ambiente não afetam deploys já publicados.
 
+5. **SMTP próprio (obrigatório para suportar múltiplos cadastros).** Por padrão o Supabase manda os e-mails de confirmação/recuperação de senha pelo servidor deles, compartilhado entre todos os projetos gratuitos — o limite é de poucos e-mails por hora, e estoura rápido (erro `email rate limit exceeded`). Pra suportar dezenas de despachantes se cadastrando, configure um SMTP próprio:
+
+   1. Crie uma conta em [resend.com](https://resend.com) (grátis até 3.000 e-mails/mês, 100/dia — dá folga pra dezenas de usuários).
+   2. Em **Domains**, adicione e verifique um domínio seu (adicionar os registros DNS que o Resend pedir). Sem isso o envio fica restrito.
+   3. Em **API Keys**, crie uma chave — ela funciona como a senha do SMTP.
+   4. No Supabase, vá em **Authentication > Emails > SMTP Settings**, habilite "Enable Custom SMTP" e preencha:
+      - Host: `smtp.resend.com`
+      - Port: `465`
+      - Username: `resend`
+      - Password: a API key criada no passo 3
+      - Sender email: um endereço do domínio verificado (ex: `contato@seudominio.com.br`)
+      - Sender name: `DOC.CAR`
+   5. Salve. Com SMTP próprio configurado, o Supabase também libera aumentar os limites de envio em **Authentication > Rate Limits**.
+
 ### 2. Stripe (cobrança)
 
 1. Crie um produto e um preço recorrente (ex: mensal) em **Product catalog**. Copie o `price_...` → `STRIPE_PRICE_ID`.
