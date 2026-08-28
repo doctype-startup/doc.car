@@ -9,6 +9,7 @@ import {
   VehicleQuery,
 } from "@/lib/vehicle";
 import { addHistory } from "@/lib/history";
+import { VeiculoReal } from "@/lib/dados-veiculo";
 import Guardiao from "@/components/Guardiao";
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -32,12 +33,12 @@ function DashboardContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VehicleQuery | null>(null);
-  const [realData, setRealData] = useState<unknown>(null);
+  const [veiculoReal, setVeiculoReal] = useState<VeiculoReal | null>(null);
   const [realError, setRealError] = useState("");
 
   async function runSearch(value: string) {
     setError("");
-    setRealData(null);
+    setVeiculoReal(null);
     setRealError("");
 
     if (!isValidPlaca(value)) {
@@ -56,7 +57,7 @@ function DashboardContent() {
       const response = await fetch(`/api/veiculo?placa=${encodeURIComponent(data.placa)}`);
       const payload = await response.json();
       if (response.ok) {
-        setRealData(payload.data);
+        setVeiculoReal(payload.data);
       } else {
         setRealError(payload.error || "Consulta real indisponível.");
       }
@@ -122,10 +123,9 @@ function DashboardContent() {
       </div>
 
       <div className="info-banner">
-        Débitos e multas abaixo ainda são simulados — só a ficha do veículo,
-        FIPE e restrições já vêm do provedor de dados real. O retorno da
-        consulta real fica disponível no painel de depuração logo abaixo,
-        quando houver.
+        Ficha do veículo, FIPE e restrições vêm do provedor de dados real
+        quando a consulta funciona. Débitos e multas abaixo continuam
+        simulados — não fazem parte do retorno desse provedor.
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -145,13 +145,13 @@ function DashboardContent() {
         </div>
       )}
 
-      {(realData !== null || realError) && (
+      {(veiculoReal !== null || realError) && (
         <details className="debug-details">
           <summary>Retorno da consulta real (modo depuração)</summary>
           {realError ? (
             <p style={{ fontSize: 13, color: "var(--danger)", marginTop: 12 }}>{realError}</p>
           ) : (
-            <pre>{JSON.stringify(realData, null, 2)}</pre>
+            <pre>{JSON.stringify(veiculoReal, null, 2)}</pre>
           )}
         </details>
       )}
@@ -160,58 +160,94 @@ function DashboardContent() {
         <>
           <div className="card">
             <div className="result-title">
-              <h2>{result.placa}</h2>
-              <span className={`badge ${result.licenciamentoEmDia ? "ok" : "warn"}`}>
-                {result.licenciamentoEmDia ? "Licenciamento em dia" : "Licenciamento atrasado"}
-              </span>
-              <span className="badge neutral">Dados simulados</span>
+              <h2>{veiculoReal?.placa || result.placa}</h2>
+              {veiculoReal ? (
+                <>
+                  <span className="badge ok">Dados reais</span>
+                  {veiculoReal.situacaoVeiculo && (
+                    <span className="badge neutral">{veiculoReal.situacaoVeiculo}</span>
+                  )}
+                  {veiculoReal.indicadores.rouboFurto && (
+                    <span className="badge warn">Roubo/furto</span>
+                  )}
+                  {veiculoReal.indicadores.restricaoJudicial && (
+                    <span className="badge warn">Restrição judicial</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className={`badge ${result.licenciamentoEmDia ? "ok" : "warn"}`}>
+                    {result.licenciamentoEmDia ? "Licenciamento em dia" : "Licenciamento atrasado"}
+                  </span>
+                  <span className="badge neutral">Dados simulados</span>
+                </>
+              )}
             </div>
 
             <div className="grid-3">
               <div className="kv">
                 <span className="label">Marca/Modelo</span>
                 <span className="value">
-                  {result.marca} {result.modelo}
+                  {veiculoReal ? `${veiculoReal.marca || ""} ${veiculoReal.modelo || ""}`.trim() : `${result.marca} ${result.modelo}`}
                 </span>
               </div>
               <div className="kv">
                 <span className="label">Ano modelo/fabricação</span>
                 <span className="value">
-                  {result.anoModelo}/{result.anoFabricacao}
+                  {veiculoReal
+                    ? `${veiculoReal.anoModelo ?? "—"}/${veiculoReal.anoFabricacao ?? "—"}`
+                    : `${result.anoModelo}/${result.anoFabricacao}`}
                 </span>
               </div>
               <div className="kv">
                 <span className="label">Cor</span>
-                <span className="value">{result.cor}</span>
+                <span className="value">{veiculoReal ? veiculoReal.cor || "—" : result.cor}</span>
               </div>
 
               <div className="kv">
                 <span className="label">Combustível</span>
-                <span className="value">{result.combustivel}</span>
+                <span className="value">
+                  {veiculoReal ? veiculoReal.combustivel || "—" : result.combustivel}
+                </span>
               </div>
               <div className="kv">
                 <span className="label">Município/UF</span>
                 <span className="value">
-                  {result.municipio}/{result.uf}
+                  {veiculoReal
+                    ? `${veiculoReal.municipio || "—"}/${veiculoReal.uf || "—"}`
+                    : `${result.municipio}/${result.uf}`}
                 </span>
               </div>
               <div className="kv">
                 <span className="label">Renavam</span>
-                <span className="value">{result.renavam}</span>
+                <span className="value">{veiculoReal ? veiculoReal.renavam || "—" : result.renavam}</span>
               </div>
 
               <div className="kv">
                 <span className="label">Chassi</span>
-                <span className="value">{result.chassi}</span>
+                <span className="value">{veiculoReal ? veiculoReal.chassi || "—" : result.chassi}</span>
               </div>
-              <div className="kv">
-                <span className="label">Vencimento do licenciamento</span>
-                <span className="value">{result.vencimentoLicenciamento}</span>
-              </div>
+              {veiculoReal ? (
+                <div className="kv">
+                  <span className="label">Proprietário</span>
+                  <span className="value">{veiculoReal.proprietarioNome || "—"}</span>
+                </div>
+              ) : (
+                <div className="kv">
+                  <span className="label">Vencimento do licenciamento</span>
+                  <span className="value">{result.vencimentoLicenciamento}</span>
+                </div>
+              )}
               <div className="kv">
                 <span className="label">Valor FIPE</span>
                 <span className="value">
-                  {result.fipe ? currency.format(result.fipe.valor) : "Não disponível"}
+                  {veiculoReal
+                    ? veiculoReal.fipe
+                      ? currency.format(veiculoReal.fipe.valor)
+                      : "Não disponível"
+                    : result.fipe
+                      ? currency.format(result.fipe.valor)
+                      : "Não disponível"}
                 </span>
               </div>
             </div>
@@ -263,9 +299,24 @@ function DashboardContent() {
 
           <div className="card">
             <h3>
-              Restrições <span className="badge neutral">Dados simulados</span>
+              Restrições{" "}
+              <span className={`badge ${veiculoReal ? "ok" : "neutral"}`}>
+                {veiculoReal ? "Dados reais" : "Dados simulados"}
+              </span>
             </h3>
-            {result.restricoes.length === 0 ? (
+            {veiculoReal ? (
+              veiculoReal.restricoes.length === 0 ? (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Nenhuma restrição encontrada para este veículo.
+                </p>
+              ) : (
+                veiculoReal.restricoes.map((restricao) => (
+                  <span key={restricao} className="badge warn" style={{ marginRight: 8, marginBottom: 8 }}>
+                    {restricao}
+                  </span>
+                ))
+              )
+            ) : result.restricoes.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--muted)" }}>
                 Nenhuma restrição encontrada para este veículo.
               </p>
