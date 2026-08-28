@@ -655,3 +655,79 @@ button.wide {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Impressão da ficha ---------- */
+
+.print-header {
+  display: none;
+}
+
+.print-button {
+  margin-left: auto;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.print-button:hover {
+  background: var(--brand-dark);
+}
+
+@media print {
+  .no-print,
+  .app-topbar,
+  .orange-line,
+  .search-card,
+  .info-banner,
+  .form-error,
+  .loading-state,
+  .empty-state,
+  .debug-details {
+    display: none !important;
+  }
+
+  .app-shell,
+  .app-content {
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    background: #fff;
+  }
+
+  .print-header {
+    display: block;
+    margin-bottom: 20px;
+  }
+
+  .print-header .brand {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--doctype-navy);
+  }
+
+  .print-header .brand span {
+    color: var(--brand);
+  }
+
+  .print-header p {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #555;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+    margin-bottom: 12px;
+  }
+
+  .badge {
+    border: 1px solid currentColor;
+  }
+}

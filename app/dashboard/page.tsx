@@ -87,6 +87,10 @@ function DashboardContent() {
     void runSearch(exemplo);
   }
 
+  function handlePrint() {
+    window.print();
+  }
+
   return (
     <>
       <div className="search-card">
@@ -157,7 +161,17 @@ function DashboardContent() {
       )}
 
       {result && (
-        <>
+        <div className="printable-report">
+          <div className="print-header">
+            <div className="brand">
+              DOC<span>.CAR</span>
+            </div>
+            <p>
+              Ficha de consulta veicular — placa {veiculoReal?.placa || result.placa} — emitida em{" "}
+              {new Date().toLocaleString("pt-BR")}
+            </p>
+          </div>
+
           <div className="card">
             <div className="result-title">
               <h2>{veiculoReal?.placa || result.placa}</h2>
@@ -182,6 +196,9 @@ function DashboardContent() {
                   <span className="badge neutral">Dados simulados</span>
                 </>
               )}
+              <button type="button" className="print-button no-print" onClick={handlePrint}>
+                Imprimir
+              </button>
             </div>
 
             <div className="grid-3">
@@ -333,7 +350,7 @@ function DashboardContent() {
               ))
             )}
           </div>
-        </>
+        </div>
       )}
     </>
   );
