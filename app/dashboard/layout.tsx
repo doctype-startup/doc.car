@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./sign-out-button";
+import NavTabs from "./nav-tabs";
 
 export default async function DashboardLayout({
   children,
@@ -39,24 +39,22 @@ export default async function DashboardLayout({
 
   return (
     <div className="app-shell">
-      <aside className="app-sidebar">
-        <div className="brand">
-          DOC<span>.CAR</span>
+      <header className="app-topbar">
+        <div className="topbar-left">
+          <div className="brand">
+            DOC<span>.CAR</span>
+          </div>
         </div>
-        <nav>
-          <Link href="/dashboard" className="active">
-            Consulta veicular
-          </Link>
-          <Link href="/dashboard/historico">Histórico</Link>
+        <NavTabs />
+        <div className="topbar-right">
+          <span className="topbar-user">
+            {profile?.name ?? profile?.email ?? user.email} · Responsável
+          </span>
           <SignOutButton />
-        </nav>
-        <div className="sidebar-footer">
-          {profile?.name}
-          <br />
-          {profile?.email ?? user.email}
         </div>
-      </aside>
-      <main className="app-main">{children}</main>
+      </header>
+      <div className="orange-line" />
+      <main className="app-content">{children}</main>
     </div>
   );
 }

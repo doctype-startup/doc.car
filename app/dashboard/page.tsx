@@ -16,6 +16,8 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+const PLACAS_EXEMPLO = ["ABC1D23", "QRS4567", "JKL8M90"];
+
 export default function DashboardPage() {
   return (
     <Suspense fallback={null}>
@@ -79,27 +81,52 @@ function DashboardContent() {
     void runSearch(placa);
   }
 
+  function handleExampleClick(exemplo: string) {
+    setPlaca(exemplo);
+    void runSearch(exemplo);
+  }
+
   return (
     <>
-      <div className="app-header">
-        <div>
-          <h1>Consulta veicular</h1>
-          <p>Digite a placa do veículo para consultar dados completos.</p>
+      <div className="search-card">
+        <h2>Consultar veículo por placa</h2>
+        <p className="hint">Formato antigo (ABC1D34) ou Mercosul (ABC1D23).</p>
+
+        <form className="search-bar" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="ABC1D23"
+            maxLength={7}
+            value={placa}
+            onChange={(e) => setPlaca(normalizePlaca(e.target.value))}
+          />
+          <button className="primary" type="submit" disabled={loading}>
+            {loading ? "Consultando..." : "Consultar"}
+          </button>
+        </form>
+
+        <div className="search-examples">
+          <span>Experimente:</span>
+          {PLACAS_EXEMPLO.map((exemplo) => (
+            <button
+              key={exemplo}
+              type="button"
+              className="chip"
+              onClick={() => handleExampleClick(exemplo)}
+            >
+              {exemplo}
+            </button>
+          ))}
+          <span>— ou digite qualquer placa, o protótipo gera uma ficha na hora.</span>
         </div>
       </div>
 
-      <form className="search-bar" onSubmit={handleSearch}>
-        <input
-          type="text"
-          placeholder="ABC1D23"
-          maxLength={7}
-          value={placa}
-          onChange={(e) => setPlaca(normalizePlaca(e.target.value))}
-        />
-        <button className="primary" type="submit" disabled={loading}>
-          {loading ? "Consultando..." : "Consultar"}
-        </button>
-      </form>
+      <div className="info-banner">
+        Sem fornecedor de dados veiculares contratado ainda: débitos, multas e
+        restrições abaixo são simulados. O retorno bruto da Infosimples (nossa
+        integração real, ainda em ajuste) fica disponível no painel de
+        depuração logo abaixo, quando houver.
+      </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
 
@@ -119,55 +146,45 @@ function DashboardContent() {
       )}
 
       {(realData !== null || realError) && (
-        <div className="card">
-          <h3>Dados reais da Infosimples (modo depuração)</h3>
+        <details className="debug-details">
+          <summary>Retorno bruto da Infosimples (modo depuração)</summary>
           {realError ? (
-            <p style={{ fontSize: 13, color: "var(--danger)" }}>{realError}</p>
+            <p style={{ fontSize: 13, color: "var(--danger)", marginTop: 12 }}>{realError}</p>
           ) : (
-            <pre
-              style={{
-                fontSize: 11,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-                maxHeight: 300,
-                overflow: "auto",
-                background: "#f5f6f8",
-                padding: 12,
-                borderRadius: 8,
-              }}
-            >
-              {JSON.stringify(realData, null, 2)}
-            </pre>
+            <pre>{JSON.stringify(realData, null, 2)}</pre>
           )}
-        </div>
+        </details>
       )}
 
       {result && (
         <>
           <div className="card">
-            <h3>
-              Dados do veículo — {result.placa}
-              <span className="badge warn">Dados simulados</span>
-            </h3>
+            <div className="result-title">
+              <h2>{result.placa}</h2>
+              <span className={`badge ${result.licenciamentoEmDia ? "ok" : "warn"}`}>
+                {result.licenciamentoEmDia ? "Licenciamento em dia" : "Licenciamento atrasado"}
+              </span>
+              <span className="badge neutral">Dados simulados</span>
+            </div>
+
             <div className="grid-3">
               <div className="kv">
-                <span className="label">Marca</span>
-                <span className="value">{result.marca}</span>
+                <span className="label">Marca/Modelo</span>
+                <span className="value">
+                  {result.marca} {result.modelo}
+                </span>
               </div>
               <div className="kv">
-                <span className="label">Modelo</span>
-                <span className="value">{result.modelo}</span>
+                <span className="label">Ano modelo/fabricação</span>
+                <span className="value">
+                  {result.anoModelo}/{result.anoFabricacao}
+                </span>
               </div>
               <div className="kv">
                 <span className="label">Cor</span>
                 <span className="value">{result.cor}</span>
               </div>
-              <div className="kv">
-                <span className="label">Ano fabricação/modelo</span>
-                <span className="value">
-                  {result.anoFabricacao}/{result.anoModelo}
-                </span>
-              </div>
+
               <div className="kv">
                 <span className="label">Combustível</span>
                 <span className="value">{result.combustivel}</span>
@@ -178,22 +195,31 @@ function DashboardContent() {
                   {result.municipio}/{result.uf}
                 </span>
               </div>
+              <div className="kv">
+                <span className="label">Renavam</span>
+                <span className="value">{result.renavam}</span>
+              </div>
+
+              <div className="kv">
+                <span className="label">Chassi</span>
+                <span className="value">{result.chassi}</span>
+              </div>
+              <div className="kv">
+                <span className="label">Vencimento do licenciamento</span>
+                <span className="value">{result.vencimentoLicenciamento}</span>
+              </div>
+              <div className="kv">
+                <span className="label">Valor FIPE</span>
+                <span className="value">
+                  {result.fipe ? currency.format(result.fipe.valor) : "Não disponível"}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="card">
             <h3>
-              Tabela FIPE <span className="badge warn">Dados simulados</span>
-            </h3>
-            <div className="fipe-value">{currency.format(result.fipe.valor)}</div>
-            <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
-              Código FIPE {result.fipe.codigo} · Referência {result.fipe.mesReferencia}
-            </p>
-          </div>
-
-          <div className="card">
-            <h3>
-              Débitos <span className="badge warn">Dados simulados</span>
+              Débitos <span className="badge neutral">Dados simulados</span>
             </h3>
             {result.debitos.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--muted)" }}>
@@ -215,7 +241,29 @@ function DashboardContent() {
 
           <div className="card">
             <h3>
-              Restrições <span className="badge warn">Dados simulados</span>
+              Multas <span className="badge neutral">Dados simulados</span>
+            </h3>
+            {result.multas.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                Nenhuma multa encontrada para este veículo.
+              </p>
+            ) : (
+              <div className="grid-2">
+                {result.multas.map((multa) => (
+                  <div className="kv" key={multa.tipo}>
+                    <span className="label">
+                      {multa.tipo} · {multa.data}
+                    </span>
+                    <span className="value">{currency.format(multa.valor)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <h3>
+              Restrições <span className="badge neutral">Dados simulados</span>
             </h3>
             {result.restricoes.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--muted)" }}>
