@@ -35,11 +35,13 @@ function DashboardContent() {
   const [result, setResult] = useState<VehicleQuery | null>(null);
   const [veiculoReal, setVeiculoReal] = useState<VeiculoReal | null>(null);
   const [realError, setRealError] = useState("");
+  const [cpfCnpjCliente, setCpfCnpjCliente] = useState("");
 
   async function runSearch(value: string) {
     setError("");
     setVeiculoReal(null);
     setRealError("");
+    setCpfCnpjCliente("");
 
     if (!isValidPlaca(value)) {
       setError("Informe uma placa válida, ex: ABC1D23 ou ABC1234.");
@@ -266,6 +268,17 @@ function DashboardContent() {
                       ? currency.format(result.fipe.valor)
                       : "Não disponível"}
                 </span>
+              </div>
+              <div className="kv">
+                <span className="label">CPF/CNPJ do cliente (informado por você)</span>
+                <input
+                  type="text"
+                  className="inline-input no-print"
+                  placeholder="Preencha na hora, se precisar"
+                  value={cpfCnpjCliente}
+                  onChange={(e) => setCpfCnpjCliente(e.target.value)}
+                />
+                <span className="value print-only">{cpfCnpjCliente || "—"}</span>
               </div>
             </div>
           </div>

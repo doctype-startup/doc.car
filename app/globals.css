@@ -678,7 +678,31 @@ button.wide {
   background: var(--brand-dark);
 }
 
+.inline-input {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.inline-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  background: #fff;
+}
+
+.print-only {
+  display: none;
+}
+
 @media print {
+  .print-only {
+    display: inline;
+  }
+
   .no-print,
   .app-topbar,
   .orange-line,
