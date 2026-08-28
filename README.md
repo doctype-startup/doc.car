@@ -21,7 +21,9 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `app/dashboard/historico` — histórico de placas consultadas, salvo no banco
 - `app/api/checkout` — cria a sessão de Stripe Checkout para o usuário logado
 - `app/api/stripe/webhook` — recebe eventos do Stripe e atualiza a assinatura no banco
-- `lib/vehicle.ts` — camada de dados da consulta veicular (**ainda mock**, determinística por placa — é o próximo passo trocar por uma API real de FIPE/Detran)
+- `app/api/veiculo` — consulta dados reais de veículo por placa via Infosimples (exige login + assinatura ativa)
+- `lib/vehicle.ts` — camada de dados **mock** (FIPE, débitos, restrições — ainda simulados, exibidos lado a lado com o dado real)
+- `lib/infosimples.ts` — client da API Infosimples (dados reais de veículo por placa)
 - `lib/supabase/` — clients Supabase (browser, server, admin/service-role) e o proxy de sessão
 - `lib/stripe.ts` — client Stripe
 - `proxy.ts` — protege as rotas de `/dashboard` redirecionando para `/login` sem sessão
@@ -53,13 +55,17 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
    Se sua conta usa **Sandboxes** (contas Stripe novas), confirme que o produto, a chave e o webhook estão todos dentro do mesmo sandbox — cada sandbox tem chaves e webhooks isolados.
 
-### 3. Configurar na Vercel
+### 3. Infosimples (dados reais de veículo)
 
-Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 6 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
+1. No painel da [Infosimples](https://infosimples.com), copie o token da sua conta → `INFOSIMPLES_TOKEN`.
+2. Hoje `lib/infosimples.ts` chama o produto **Sinesp Cidadão / Veículo** (nacional, qualquer tipo de veículo). Se sua conta usa outro produto (ex: DETRAN por estado), o endpoint em `lib/infosimples.ts` precisa ser trocado.
+3. Débitos, multas e restrições **continuam simulados** — dependem de produtos adicionais da Infosimples (ex: ANTT/multas) ainda não confirmados/integrados.
 
-Sem essas variáveis configuradas, o app sobe normalmente mas login/cadastro e a página de assinatura mostram erro — é esperado até a configuração ser concluída.
+### 4. Configurar na Vercel
 
-A autenticação e a assinatura já usam esse backend real; a consulta veicular em si (`lib/vehicle.ts`) segue com dados simulados até integrarmos um provedor de dados de veículos.
+Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 7 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
+
+Sem essas variáveis configuradas, o app sobe normalmente mas login/cadastro, assinatura e consulta real mostram erro — é esperado até a configuração ser concluída.
 
 ## Deploy
 
