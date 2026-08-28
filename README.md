@@ -36,10 +36,14 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 1. Crie um projeto em [supabase.com](https://supabase.com).
 2. Abra **SQL Editor** e rode o conteúdo de `supabase/migrations/0001_init.sql`.
 3. Em **Authentication > Providers**, confirme que "Email" está habilitado. Em **Authentication > Emails**, decida se exige confirmação de e-mail (recomendado em produção).
-4. Em **Project Settings > API**, copie:
-   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
-   - `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` (secreta — só no servidor)
+4. Em **Project Settings > API Keys**, copie:
+   - a URL do projeto (visão geral do projeto, formato `https://xxxx.supabase.co`) → `NEXT_PUBLIC_SUPABASE_URL`
+   - **Publishable key** (`sb_publishable_...`) → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - **Secret key** (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY` (secreta — só no servidor)
+
+   (Em projetos Supabase mais antigos essas chaves aparecem como `anon public` / `service_role` — funcionam da mesma forma, só o nome muda.)
+
+   Depois de adicionar/alterar variáveis na Vercel, é preciso fazer um **novo deploy** para elas passarem a valer — variáveis de ambiente não afetam deploys já publicados.
 
 ### 2. Stripe (cobrança)
 
