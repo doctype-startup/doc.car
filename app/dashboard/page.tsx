@@ -122,10 +122,10 @@ function DashboardContent() {
       </div>
 
       <div className="info-banner">
-        Sem fornecedor de dados veiculares contratado ainda: débitos, multas e
-        restrições abaixo são simulados. O retorno bruto da Infosimples (nossa
-        integração real, ainda em ajuste) fica disponível no painel de
-        depuração logo abaixo, quando houver.
+        Débitos e multas abaixo ainda são simulados — só a ficha do veículo,
+        FIPE e restrições já vêm do provedor de dados real. O retorno da
+        consulta real fica disponível no painel de depuração logo abaixo,
+        quando houver.
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -147,7 +147,7 @@ function DashboardContent() {
 
       {(realData !== null || realError) && (
         <details className="debug-details">
-          <summary>Retorno bruto da Infosimples (modo depuração)</summary>
+          <summary>Retorno da consulta real (modo depuração)</summary>
           {realError ? (
             <p style={{ fontSize: 13, color: "var(--danger)", marginTop: 12 }}>{realError}</p>
           ) : (
