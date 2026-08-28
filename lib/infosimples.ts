@@ -41,20 +41,49 @@ export async function consultarVeiculoPorPlaca(
   };
 }
 
+// Consulta multas ANTT (SIFAMA). Ao contrário da consulta de veículo, essa
+// exige login próprio no portal SIFAMA da ANTT (CPF ou CNPJ + senha) — só
+// retorna multas da transportadora dona do login, não de placas de
+// terceiros. Pausada até termos essas credenciais configuradas.
+const anttLoginCpf = process.env.INFOSIMPLES_ANTT_LOGIN_CPF || "";
+const anttLoginCnpj = process.env.INFOSIMPLES_ANTT_LOGIN_CNPJ || "";
+const anttLoginSenha = process.env.INFOSIMPLES_ANTT_LOGIN_SENHA || "";
+
+export const isAnttMultasConfigured = Boolean(
+  token && anttLoginSenha && (anttLoginCpf || anttLoginCnpj)
+);
+
+export type TipoFiscalizacaoAntt =
+  | "1" // Excesso de Peso
+  | "2" // Pagamento Eletrônico de Frete (PEF)
+  | "3" // RNTRC
+  | "4" // SAC TRIP
+  | "5" // Transporte Rodoviário de Produtos Perigosos (TRPP)
+  | "6" // Transporte Rodoviário Interestadual de Passageiros
+  | "7" // Vale Pedágio
+  | "8"; // Piso Mínimo de Frete
+
 export async function consultarMultasAntt(
-  placa: string,
-  renavam?: string
+  tipoFiscalizacao: TipoFiscalizacaoAntt,
+  placa?: string
 ): Promise<InfosimplesResponse> {
-  if (!token) {
+  if (!isAnttMultasConfigured) {
     return {
       ok: false,
       data: null,
-      errorMessage: "INFOSIMPLES_TOKEN não configurado",
+      errorMessage:
+        "Consulta de multas ANTT não configurada (falta login do SIFAMA).",
     };
   }
 
-  const params: Record<string, string> = { token, placa };
-  if (renavam) params.renavam = renavam;
+  const params: Record<string, string> = {
+    token,
+    login_senha: anttLoginSenha,
+    tipo_fiscalizacao: tipoFiscalizacao,
+  };
+  if (anttLoginCnpj) params.login_cnpj = anttLoginCnpj;
+  else params.login_cpf = anttLoginCpf;
+  if (placa) params.placa = placa;
 
   const response = await fetch(ANTT_MULTAS_ENDPOINT, {
     method: "POST",

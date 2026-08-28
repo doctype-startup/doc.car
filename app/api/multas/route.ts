@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { consultarMultasAntt, isInfosimplesConfigured } from "@/lib/infosimples";
+import {
+  consultarMultasAntt,
+  isAnttMultasConfigured,
+  TipoFiscalizacaoAntt,
+} from "@/lib/infosimples";
 
 export async function GET(request: NextRequest) {
-  const placa = request.nextUrl.searchParams.get("placa") || "";
-  const renavam = request.nextUrl.searchParams.get("renavam") || undefined;
-  if (!placa) {
-    return NextResponse.json({ error: "placa é obrigatória" }, { status: 400 });
-  }
+  const placa = request.nextUrl.searchParams.get("placa") || undefined;
+  const tipoFiscalizacao = (request.nextUrl.searchParams.get("tipo_fiscalizacao") ||
+    "3") as TipoFiscalizacaoAntt;
 
   const supabase = await createClient();
   const {
@@ -31,14 +33,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "assinatura inativa" }, { status: 403 });
   }
 
-  if (!isInfosimplesConfigured) {
+  if (!isAnttMultasConfigured) {
     return NextResponse.json(
-      { error: "INFOSIMPLES_TOKEN não configurado" },
-      { status: 500 }
+      { error: "Consulta de multas ANTT não configurada (falta login do SIFAMA)." },
+      { status: 501 }
     );
   }
 
-  const result = await consultarMultasAntt(placa, renavam);
+  const result = await consultarMultasAntt(tipoFiscalizacao, placa);
 
   console.log(
     `[infosimples-antt-multas] placa=${placa} ok=${result.ok} resposta=${JSON.stringify(result.data).slice(0, 2000)}`
