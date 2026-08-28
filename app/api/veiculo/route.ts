@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { consultarVeiculoPorPlaca, isInfosimplesConfigured } from "@/lib/infosimples";
+import { consultarVeiculoPorPlaca, isPlacaApiConfigured } from "@/lib/dados-veiculo";
 
 export async function GET(request: NextRequest) {
   const placa = request.nextUrl.searchParams.get("placa") || "";
@@ -30,18 +30,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "assinatura inativa" }, { status: 403 });
   }
 
-  if (!isInfosimplesConfigured) {
+  if (!isPlacaApiConfigured) {
     return NextResponse.json(
-      { error: "INFOSIMPLES_TOKEN não configurado" },
+      { error: "PLACA_API_TOKEN não configurado" },
       { status: 500 }
     );
   }
 
   const result = await consultarVeiculoPorPlaca(placa);
 
-  console.log(
-    `[infosimples] placa=${placa} ok=${result.ok} resposta=${JSON.stringify(result.data).slice(0, 2000)}`
-  );
+  console.log(`[dados-veiculo] placa=${placa} ok=${result.ok}`);
 
   if (!result.ok) {
     return NextResponse.json({ error: result.errorMessage }, { status: 502 });

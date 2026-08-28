@@ -21,9 +21,10 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `app/dashboard/historico` — histórico de placas consultadas, salvo no banco
 - `app/api/checkout` — cria a sessão de Stripe Checkout para o usuário logado
 - `app/api/stripe/webhook` — recebe eventos do Stripe e atualiza a assinatura no banco
-- `app/api/veiculo` — consulta dados reais de veículo por placa via Infosimples (exige login + assinatura ativa)
-- `lib/vehicle.ts` — camada de dados **mock** (FIPE, débitos, restrições — ainda simulados, exibidos lado a lado com o dado real)
-- `lib/infosimples.ts` — client da API Infosimples (dados reais de veículo por placa)
+- `app/api/veiculo` — consulta dados reais de veículo por placa (exige login + assinatura ativa)
+- `lib/vehicle.ts` — camada de dados **mock** (débitos e multas — ainda simulados, exibidos lado a lado com o dado real)
+- `lib/dados-veiculo.ts` — client do provedor de dados veiculares ativo (veja "Dados reais de veículo" abaixo)
+- `lib/infosimples.ts` — client da Infosimples, hoje **não usado** (endpoint de veículo não autorizado na conta atual); mantido caso a consulta de multas ANTT/SIFAMA seja retomada
 - `lib/supabase/` — clients Supabase (browser, server, admin/service-role) e o proxy de sessão
 - `lib/stripe.ts` — client Stripe
 - `proxy.ts` — protege as rotas de `/dashboard` redirecionando para `/login` sem sessão
@@ -85,11 +86,13 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
    Se sua conta usa **Sandboxes** (contas Stripe novas), confirme que o produto, a chave e o webhook estão todos dentro do mesmo sandbox — cada sandbox tem chaves e webhooks isolados.
 
-### 3. Infosimples (dados reais de veículo)
+### 3. Dados reais de veículo
 
-1. No painel da [Infosimples](https://infosimples.com), copie o token da sua conta → `INFOSIMPLES_TOKEN`.
-2. Hoje `lib/infosimples.ts` chama o produto **Sinesp Cidadão / Veículo** (nacional, qualquer tipo de veículo). Se sua conta usa outro produto (ex: DETRAN por estado), o endpoint em `lib/infosimples.ts` precisa ser trocado.
-3. Débitos, multas e restrições **continuam simulados** — dependem de produtos adicionais da Infosimples (ex: ANTT/multas) ainda não confirmados/integrados.
+1. Copie o token fornecido pelo provedor da consulta por placa → `PLACA_API_TOKEN`.
+2. `lib/dados-veiculo.ts` chama esse provedor e devolve ficha do veículo (placa, chassi, Renavam, marca/modelo, ano, cor, combustível, FIPE, restrições, indicadores de roubo/furto/multa) e o nome do proprietário atual.
+3. **Importante — dados pessoais**: o provedor retorna, junto da ficha do veículo, um dossiê pessoal completo do proprietário (CPF, nome da mãe, data de nascimento, endereço, telefone, e-mail e dados de birô de crédito). `sanitizeVeiculo()` em `lib/dados-veiculo.ts` descarta tudo isso — só o **nome** do proprietário atual chega a sair da função. Isso é proposital: um despachante tem necessidade legítima de saber quem é o dono do veículo, mas não de acessar o dossiê pessoal completo dele (LGPD — minimização de dados). **Não amplie esse retorno sem revisar as implicações de LGPD antes.**
+4. Débitos e multas **continuam simulados** — não fazem parte do retorno desse provedor.
+5. `lib/infosimples.ts` fica sem uso por enquanto (endpoint de veículo não autorizado na conta atual) — mantido só caso a consulta de multas ANTT/SIFAMA seja retomada.
 
 ### 4. Configurar na Vercel
 
