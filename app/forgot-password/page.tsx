@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import Guardiao from "@/components/Guardiao";
 
 export default function ForgotPasswordPage() {
   const supabase = createClient();
@@ -46,9 +47,12 @@ export default function ForgotPasswordPage() {
             </p>
 
             {sent ? (
-              <div className="form-success" style={{ marginTop: 20 }}>
-                Se {email} estiver cadastrado, você receberá um e-mail com as
-                instruções em instantes.
+              <div className="form-note" style={{ marginTop: 20, paddingBottom: 0 }}>
+                <Guardiao pose="enviado" />
+                <div className="form-success">
+                  Se {email} estiver cadastrado, você receberá um e-mail com as
+                  instruções em instantes.
+                </div>
               </div>
             ) : (
               <form

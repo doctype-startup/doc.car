@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import Guardiao from "@/components/Guardiao";
 
 export default async function HistoricoPage() {
   const supabase = await createClient();
@@ -31,7 +32,10 @@ export default async function HistoricoPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="empty-state">Você ainda não realizou nenhuma consulta.</div>
+        <div className="empty-state">
+          <Guardiao pose="aguardando" />
+          Você ainda não realizou nenhuma consulta.
+        </div>
       ) : (
         <div className="card">
           {items.map((item, index) => (

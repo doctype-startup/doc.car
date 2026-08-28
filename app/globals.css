@@ -1,16 +1,31 @@
 :root {
-  --bg: #0b0f1a;
+  /* DOCTYPE brand tokens */
+  --doctype-orange: #ff6400;
+  --doctype-orange-dark: #e05800;
+  --doctype-navy: #06133f;
+  --doctype-navy-light: #101c4d;
+  --doctype-ink: #101419;
+  --doctype-bg: #f7f8fa;
+  --doctype-muted: #8a93a2;
+  --doctype-border: #e4e7ec;
+
+  --bg: var(--doctype-navy);
   --bg-panel: #ffffff;
-  --ink: #0f1522;
-  --muted: #6b7280;
-  --border: #e4e7ec;
-  --brand: #ff6a1a;
-  --brand-dark: #e2540a;
-  --navy: #0e1526;
-  --navy-light: #16203a;
+  --ink: var(--doctype-ink);
+  --muted: var(--doctype-muted);
+  --border: var(--doctype-border);
+  --brand: var(--doctype-orange);
+  --brand-dark: var(--doctype-orange-dark);
+  --navy: var(--doctype-navy);
+  --navy-light: var(--doctype-navy-light);
   --success: #1a9c5c;
   --danger: #d63c3c;
   --radius: 14px;
+
+  --font-heading: var(--font-montserrat), "Montserrat", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-body: var(--font-inter), "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -25,7 +40,7 @@ body {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   color: var(--ink);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -39,13 +54,27 @@ button {
   font-family: inherit;
 }
 
+h1,
+h2,
+h3,
+.brand {
+  font-family: var(--font-heading);
+}
+
+/* ---------- Mascote (Guardião) ---------- */
+
+.guardiao {
+  display: block;
+  object-fit: contain;
+}
+
 /* ---------- Login / auth pages ---------- */
 
 .login-page {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1.1fr 1fr;
-  background: radial-gradient(circle at 15% 20%, #182446 0%, var(--navy) 45%, var(--bg) 100%);
+  background: radial-gradient(circle at 15% 20%, var(--doctype-navy-light) 0%, var(--navy) 45%, var(--doctype-ink) 100%);
 }
 
 .login-brand {
@@ -61,6 +90,19 @@ button {
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.login-brand .brand::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 10px;
+  background: var(--brand);
+  border-radius: 2px;
 }
 
 .login-brand .brand span {
@@ -75,6 +117,12 @@ button {
   color: #b7bfd1;
 }
 
+.login-brand .guardiao {
+  margin-top: 32px;
+  width: 140px;
+  height: 140px;
+}
+
 .login-panel {
   display: flex;
   align-items: center;
@@ -87,7 +135,7 @@ button {
   max-width: 380px;
   background: var(--bg-panel);
   border-radius: var(--radius);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 60px rgba(6, 19, 63, 0.35);
   overflow: hidden;
 }
 
@@ -147,6 +195,23 @@ button {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.form-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 28px;
+}
+
+.form-note .guardiao {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.assinar-guardiao {
+  margin-bottom: 4px;
 }
 
 .field {
@@ -228,13 +293,20 @@ button.wide {
     text-align: center;
     align-items: center;
   }
+  .login-brand .brand::before {
+    display: none;
+  }
+  .login-brand .guardiao {
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 /* ---------- App shell (dashboard) ---------- */
 
 .app-shell {
   min-height: 100vh;
-  background: #f5f6f8;
+  background: var(--doctype-bg);
   display: flex;
 }
 
@@ -253,6 +325,18 @@ button.wide {
   font-weight: 800;
   color: #fff;
   margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.app-sidebar .brand::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  background: var(--brand);
+  border-radius: 2px;
 }
 
 .app-sidebar .brand span {
@@ -265,7 +349,8 @@ button.wide {
   gap: 4px;
 }
 
-.app-sidebar nav a {
+.app-sidebar nav a,
+.app-sidebar nav button {
   padding: 9px 12px;
   border-radius: 8px;
   font-size: 13px;
@@ -275,7 +360,8 @@ button.wide {
 }
 
 .app-sidebar nav a.active,
-.app-sidebar nav a:hover {
+.app-sidebar nav a:hover,
+.app-sidebar nav button:hover {
   background: var(--navy-light);
   color: #fff;
 }
@@ -302,6 +388,7 @@ button.wide {
 .app-header h1 {
   font-size: 22px;
   font-weight: 800;
+  color: var(--doctype-navy);
 }
 
 .app-header p {
@@ -408,8 +495,30 @@ button.wide {
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 48px 20px 60px;
   color: var(--muted);
+}
+
+.empty-state .guardiao {
+  width: 128px;
+  height: 128px;
+  margin: 0 auto 16px;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 4px 28px;
+  color: var(--doctype-navy);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.loading-state .guardiao {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
 }
 
 @media (max-width: 760px) {

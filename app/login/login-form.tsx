@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Guardiao from "@/components/Guardiao";
 
 type Tab = "login" | "signup";
 
@@ -118,9 +119,14 @@ export default function LoginSignupForm() {
         <>
           <h2>Acesse sua conta</h2>
           <p>Entre com o e-mail e senha do seu despachante.</p>
+          {info && (
+            <div className="form-note">
+              <Guardiao pose="enviado" />
+              <div className="form-success">{info}</div>
+            </div>
+          )}
           <form className="login-form" onSubmit={handleLogin}>
             {error && <div className="form-error">{error}</div>}
-            {info && <div className="form-success">{info}</div>}
             <label className="field">
               <span>E-mail</span>
               <input

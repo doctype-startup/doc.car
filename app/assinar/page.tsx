@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isStripeConfigured } from "@/lib/stripe";
+import Guardiao from "@/components/Guardiao";
 
 export default async function AssinarPage() {
   const supabase = await createClient();
@@ -38,7 +39,8 @@ export default async function AssinarPage() {
         <div className="login-card">
           <div className="orange-line" />
           <div style={{ padding: "20px 32px 32px" }}>
-            <h2>Assine o DOC.CAR</h2>
+            <Guardiao pose="aprovacao" size={72} className="assinar-guardiao" />
+            <h2 style={{ marginTop: 14 }}>Assine o DOC.CAR</h2>
             <p style={{ marginTop: 6, fontSize: 13, color: "var(--muted)" }}>
               {subscription?.status === "past_due"
                 ? "Sua assinatura está com um pagamento pendente. Atualize para continuar consultando."

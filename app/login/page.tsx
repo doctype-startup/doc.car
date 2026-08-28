@@ -1,3 +1,4 @@
+import Guardiao from "@/components/Guardiao";
 import LoginSignupForm from "./login-form";
 
 export default function LoginPage() {
@@ -12,6 +13,7 @@ export default function LoginPage() {
           técnica, FIPE, débitos e restrições em um só lugar. Um produto{" "}
           <strong>DOCTYPE</strong>.
         </p>
+        <Guardiao pose="aguardando" />
       </div>
       <div className="login-panel">
         <div className="login-card">
