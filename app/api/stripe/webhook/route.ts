@@ -16,10 +16,15 @@ function extractPeriodEnd(subscription: Stripe.Subscription) {
 
 async function upsertSubscription(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.supabase_user_id;
-  if (!userId) return;
+  if (!userId) {
+    console.error(
+      `[stripe-webhook] subscription ${subscription.id} sem metadata.supabase_user_id`
+    );
+    return;
+  }
 
   const supabase = createAdminClient();
-  await supabase.from("subscriptions").upsert(
+  const { error } = await supabase.from("subscriptions").upsert(
     {
       user_id: userId,
       stripe_customer_id: String(subscription.customer),
@@ -31,6 +36,16 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
     },
     { onConflict: "user_id" }
   );
+
+  if (error) {
+    console.error(
+      `[stripe-webhook] falha ao gravar assinatura do usuário ${userId}: ${error.message}`
+    );
+  } else {
+    console.log(
+      `[stripe-webhook] assinatura do usuário ${userId} gravada com status ${subscription.status}`
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -55,6 +70,8 @@ export async function POST(request: NextRequest) {
     const message = err instanceof Error ? err.message : "erro desconhecido";
     return NextResponse.json({ error: `webhook inválido: ${message}` }, { status: 400 });
   }
+
+  console.log(`[stripe-webhook] evento recebido: ${event.type}`);
 
   switch (event.type) {
     case "customer.subscription.created":
