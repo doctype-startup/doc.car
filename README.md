@@ -28,6 +28,22 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `lib/stripe.ts` — client Stripe
 - `proxy.ts` — protege as rotas de `/dashboard` redirecionando para `/login` sem sessão
 - `supabase/migrations/0001_init.sql` — schema do banco (perfis, assinaturas, histórico)
+- `components/Guardiao.tsx` — mascote oficial DOCTYPE, usado nos momentos de espera/aprovação/confirmação do app
+- `public/mascote/` — imagens do Guardião (veja "Identidade visual" abaixo)
+
+## Identidade visual (DOCTYPE)
+
+O app segue o manual de marca DOCTYPE: laranja `#FF6400` como cor de ação, navy `#06133F` como base institucional, texto em `#101419`, fundo neutro `#F7F8FA` e cinza de apoio `#8A93A2`. Títulos usam Montserrat e o corpo de texto usa Inter (carregadas via `next/font/google` em `app/layout.tsx`), sem dependência externa de CSS.
+
+O mascote **Guardião** — o "monitor" de todos os produtos DOCTYPE — aparece nos momentos-chave da jornada (tela de login, aguardando a primeira consulta, durante a verificação da placa, pedindo aprovação da assinatura, confirmando envio de e-mail). O componente `components/Guardiao.tsx` referencia os arquivos em `public/mascote/`:
+
+- `guardiao-aguardando.png` — login e estados vazios ("aguardamos seu retorno")
+- `guardiao-verificando.png` — carregando o resultado de uma consulta
+- `guardiao-aprovacao.png` — página de assinatura
+- `guardiao-enviado.png` — confirmações de e-mail (cadastro, recuperação de senha)
+- `guardiao-sucesso.png` — reservado para estados de sucesso
+
+Esses arquivos ainda não estão no repositório — o componente se esconde automaticamente (sem quebrar o layout) quando a imagem correspondente não existe. Basta adicionar os PNGs com esses nomes em `public/mascote/` para o mascote aparecer.
 
 ## Backend (Supabase + Stripe)
 

@@ -9,6 +9,7 @@ import {
   VehicleQuery,
 } from "@/lib/vehicle";
 import { addHistory } from "@/lib/history";
+import Guardiao from "@/components/Guardiao";
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -102,8 +103,16 @@ function DashboardContent() {
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
 
-      {!result && !error && (
+      {loading && (
+        <div className="loading-state">
+          <Guardiao pose="verificando" />
+          <span>Já estamos verificando os dados da placa...</span>
+        </div>
+      )}
+
+      {!result && !error && !loading && (
         <div className="empty-state">
+          <Guardiao pose="aguardando" />
           Nenhuma consulta realizada ainda. Digite uma placa acima para
           começar.
         </div>
