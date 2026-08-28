@@ -49,7 +49,9 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
 1. Crie um produto e um preço recorrente (ex: mensal) em **Product catalog**. Copie o `price_...` → `STRIPE_PRICE_ID`.
 2. Em **Developers > API keys**, copie a `Secret key` → `STRIPE_SECRET_KEY`.
-3. Em **Developers > Webhooks**, adicione um endpoint apontando para `https://SEU-DOMINIO/api/stripe/webhook`, escutando pelo menos: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. Copie o `Signing secret` → `STRIPE_WEBHOOK_SECRET`.
+3. Em **Developers > Webhooks**, crie um novo destino de evento (não reaproveite um endpoint de outro projeto) apontando para `https://SEU-DOMINIO/api/stripe/webhook`, escutando apenas: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. Copie o `Signing secret` → `STRIPE_WEBHOOK_SECRET`.
+
+   Se sua conta usa **Sandboxes** (contas Stripe novas), confirme que o produto, a chave e o webhook estão todos dentro do mesmo sandbox — cada sandbox tem chaves e webhooks isolados.
 
 ### 3. Configurar na Vercel
 
