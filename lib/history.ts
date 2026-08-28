@@ -1,24 +1,36 @@
-"use client";
-
-const HISTORY_KEY = "doccar_history";
-const MAX_ITEMS = 20;
+import { createClient } from "@/lib/supabase/client";
 
 export type HistoryItem = {
   placa: string;
   consultadoEm: string;
 };
 
-export function getHistory(): HistoryItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
-  } catch {
-    return [];
-  }
+export async function getHistory(): Promise<HistoryItem[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data } = await supabase
+    .from("search_history")
+    .select("placa, consultado_em")
+    .eq("user_id", user.id)
+    .order("consultado_em", { ascending: false })
+    .limit(20);
+
+  return (data || []).map((row) => ({
+    placa: row.placa,
+    consultadoEm: new Date(row.consultado_em).toLocaleString("pt-BR"),
+  }));
 }
 
-export function addHistory(placa: string) {
-  const items = getHistory().filter((item) => item.placa !== placa);
-  items.unshift({ placa, consultadoEm: new Date().toLocaleString("pt-BR") });
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, MAX_ITEMS)));
+export async function addHistory(placa: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("search_history").insert({ user_id: user.id, placa });
 }

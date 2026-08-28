@@ -2,54 +2,91 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { saveSession } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
 
 type Tab = "login" | "signup";
 
+function translateAuthError(message: string) {
+  if (message.includes("Invalid login credentials")) {
+    return "E-mail ou senha incorretos.";
+  }
+  if (message.includes("User already registered")) {
+    return "Já existe uma conta com este e-mail.";
+  }
+  if (message.includes("Password should be at least")) {
+    return "A senha deve ter pelo menos 6 caracteres.";
+  }
+  return message;
+}
+
 export default function LoginSignupForm() {
   const router = useRouter();
+  const supabase = createClient();
   const [tab, setTab] = useState<Tab>("login");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setInfo("");
     const form = new FormData(event.currentTarget);
     const email = String(form.get("email") || "");
     const password = String(form.get("password") || "");
 
-    if (!email || !password) {
-      setError("Informe e-mail e senha para continuar.");
+    setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoading(false);
+
+    if (signInError) {
+      setError(translateAuthError(signInError.message));
       return;
     }
 
-    setLoading(true);
-    saveSession({ email, name: email.split("@")[0] });
     router.push("/dashboard");
+    router.refresh();
   }
 
-  function handleSignup(event: FormEvent<HTMLFormElement>) {
+  async function handleSignup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setInfo("");
     const form = new FormData(event.currentTarget);
     const name = String(form.get("name") || "");
     const email = String(form.get("email") || "");
     const password = String(form.get("password") || "");
     const confirm = String(form.get("confirm") || "");
 
-    if (!name || !email || !password) {
-      setError("Preencha todos os campos para criar sua conta.");
-      return;
-    }
     if (password !== confirm) {
       setError("As senhas informadas não coincidem.");
       return;
     }
 
     setLoading(true);
-    saveSession({ email, name });
-    router.push("/dashboard");
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    });
+    setLoading(false);
+
+    if (signUpError) {
+      setError(translateAuthError(signUpError.message));
+      return;
+    }
+
+    if (data.session) {
+      router.push("/dashboard");
+      router.refresh();
+      return;
+    }
+
+    setInfo("Conta criada! Verifique seu e-mail para confirmar o cadastro antes de entrar.");
+    setTab("login");
   }
 
   return (
@@ -83,6 +120,7 @@ export default function LoginSignupForm() {
           <p>Entre com o e-mail e senha do seu despachante.</p>
           <form className="login-form" onSubmit={handleLogin}>
             {error && <div className="form-error">{error}</div>}
+            {info && <div className="form-success">{info}</div>}
             <label className="field">
               <span>E-mail</span>
               <input

@@ -1,23 +1,32 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getHistory, HistoryItem } from "@/lib/history";
+import { createClient } from "@/lib/supabase/server";
 
-export default function HistoricoPage() {
-  const [items, setItems] = useState<HistoryItem[]>([]);
+export default async function HistoricoPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs from localStorage after mount to avoid a hydration mismatch
-    setItems(getHistory());
-  }, []);
+  const { data } = user
+    ? await supabase
+        .from("search_history")
+        .select("placa, consultado_em")
+        .eq("user_id", user.id)
+        .order("consultado_em", { ascending: false })
+        .limit(20)
+    : { data: [] };
+
+  const items = (data || []).map((row) => ({
+    placa: row.placa,
+    consultadoEm: new Date(row.consultado_em).toLocaleString("pt-BR"),
+  }));
 
   return (
     <>
       <div className="app-header">
         <div>
           <h1>Histórico de consultas</h1>
-          <p>Últimas placas consultadas neste navegador.</p>
+          <p>Últimas placas consultadas por você.</p>
         </div>
       </div>
 
@@ -25,9 +34,9 @@ export default function HistoricoPage() {
         <div className="empty-state">Você ainda não realizou nenhuma consulta.</div>
       ) : (
         <div className="card">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
-              key={item.placa}
+              key={`${item.placa}-${index}`}
               style={{
                 display: "flex",
                 justifyContent: "space-between",

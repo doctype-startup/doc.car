@@ -2,13 +2,24 @@
 
 import { useState, FormEvent } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
+  const supabase = createClient();
   const [sent, setSent] = useState(false);
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setLoading(true);
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo:
+        typeof window !== "undefined"
+          ? `${window.location.origin}/dashboard`
+          : undefined,
+    });
+    setLoading(false);
     setSent(true);
   }
 
@@ -56,8 +67,8 @@ export default function ForgotPasswordPage() {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </label>
-                <button className="primary wide" type="submit">
-                  Enviar instruções
+                <button className="primary wide" type="submit" disabled={loading}>
+                  {loading ? "Enviando..." : "Enviar instruções"}
                 </button>
               </form>
             )}

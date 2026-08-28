@@ -1,31 +1,41 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSession, clearSession, Session } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import SignOutButton from "./sign-out-button";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const [session, setSession] = useState<Session | null | undefined>(
-    undefined
-  );
+  const supabase = await createClient();
 
-  useEffect(() => {
-    const current = getSession();
-    if (!current) {
-      router.replace("/login");
-      return;
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncs from localStorage after mount to avoid a hydration mismatch
-    setSession(current);
-  }, [router]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (session === undefined) return null;
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, email")
+    .eq("id", user.id)
+    .single();
+
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select("status")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const hasActiveAccess =
+    subscription?.status === "active" || subscription?.status === "trialing";
+
+  if (!hasActiveAccess) {
+    redirect("/assinar");
+  }
 
   return (
     <div className="app-shell">
@@ -38,21 +48,12 @@ export default function DashboardLayout({
             Consulta veicular
           </Link>
           <Link href="/dashboard/historico">Histórico</Link>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              clearSession();
-              router.replace("/login");
-            }}
-          >
-            Sair
-          </a>
+          <SignOutButton />
         </nav>
         <div className="sidebar-footer">
-          {session?.name}
+          {profile?.name}
           <br />
-          {session?.email}
+          {profile?.email ?? user.email}
         </div>
       </aside>
       <main className="app-main">{children}</main>
