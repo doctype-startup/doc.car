@@ -23,6 +23,12 @@ export type ConsultaAvancada = {
    * preenchidos, então não arriscamos exibir campos não verificados do
    * Renajud (que podem incluir dados pessoais do processo). */
   totalRestricoesJudiciais: number;
+  /** Nome do proprietário atual — mesma exceção já aplicada em
+   * lib/dados-veiculo.ts: o nome, isoladamente, não é o dado sensível aqui
+   * (o despachante tem necessidade legítima de saber de quem é o veículo).
+   * CPF, nome da mãe, endereço e demais dados pessoais continuam nunca
+   * saindo desta função. */
+  proprietarioNome?: string;
   /** CNPJ do proprietário, só quando ele é pessoa jurídica (14 dígitos no
    * documento do provedor). Mesma regra do restante do app: CPF de pessoa
    * física (11 dígitos) nunca sai desta função. */
@@ -67,6 +73,7 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
     rouboFurto,
     possuiRestricaoJudicial: Boolean(veiculo?.possuiRestricaoJudicial),
     totalRestricoesJudiciais: Array.isArray(d?.renajud) ? d.renajud.length : 0,
+    proprietarioNome: veiculo?.nomeProprietario || undefined,
     proprietarioCnpj: documento.length === 14 ? documento : undefined,
   };
 }

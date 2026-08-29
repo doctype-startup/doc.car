@@ -450,10 +450,20 @@ function DashboardContent() {
                   Nenhuma restrição judicial encontrada no Renajud.
                 </p>
               )}
-              {avancada.proprietarioCnpj && (
-                <div className="kv" style={{ marginTop: 12 }}>
-                  <span className="label">CNPJ do proprietário</span>
-                  <span className="value">{formatCnpj(avancada.proprietarioCnpj)}</span>
+              {(avancada.proprietarioNome || avancada.proprietarioCnpj) && (
+                <div className="grid-2" style={{ marginTop: 12 }}>
+                  {avancada.proprietarioNome && (
+                    <div className="kv">
+                      <span className="label">Proprietário</span>
+                      <span className="value">{avancada.proprietarioNome}</span>
+                    </div>
+                  )}
+                  {avancada.proprietarioCnpj && (
+                    <div className="kv">
+                      <span className="label">CNPJ do proprietário</span>
+                      <span className="value">{formatCnpj(avancada.proprietarioCnpj)}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
