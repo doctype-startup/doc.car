@@ -71,6 +71,21 @@ export type ConsultaAvancada = {
   numeroCrv?: string;
   /** Código de segurança do CRV/CRLV. */
   codigoSegurancaCrv?: string;
+  /** Identificador único do registro no provedor — não é um dado de
+   * pessoa, é o identificador da própria consulta/registro do veículo. */
+  identificacaoUnica?: string;
+  /** Situação do chassi (código do provedor, ex: "N" = normal). */
+  situacaoChassi?: string;
+  /** Se o veículo já foi emplacado. */
+  foiEmplacado?: boolean;
+  /** Se a placa ostenta o selo PIV (Placa de Identificação do Veículo). */
+  ostentaPiv?: boolean;
+  /** Se a placa está no formato antigo (pré-Mercosul). */
+  placaFormatoAntigo?: boolean;
+  /** Se a placa foi inutilizada (cancelada/substituída). */
+  placaInutilizada?: boolean;
+  /** Observações registradas no documento pelo órgão de trânsito. */
+  observacoes: string[];
   /** Nome do proprietário atual — mesma exceção já aplicada em
    * lib/dados-veiculo.ts: o nome, isoladamente, não é o dado sensível aqui
    * (o despachante tem necessidade legítima de saber de quem é o veículo).
@@ -166,6 +181,22 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
     numeroSequencialDocumento: veiculo?.sequencialDocumento || undefined,
     numeroCrv: veiculo?.numeroTipografico || undefined,
     codigoSegurancaCrv: veiculo?.codigoSegurancaCrv || undefined,
+    identificacaoUnica: veiculo?.identificacaoUnica || undefined,
+    situacaoChassi: veiculo?.situacaoChassi || undefined,
+    foiEmplacado:
+      veiculo?.foiEmplacado === undefined ? undefined : Boolean(veiculo.foiEmplacado),
+    ostentaPiv:
+      veiculo?.ostentaPIV === undefined ? undefined : veiculo.ostentaPIV === "SIM",
+    placaFormatoAntigo:
+      veiculo?.placaPreMercosul === undefined ? undefined : Boolean(veiculo.placaPreMercosul),
+    placaInutilizada:
+      veiculo?.placaInutilizada === undefined ? undefined : Boolean(veiculo.placaInutilizada),
+    observacoes: Array.isArray(veiculo?.observacoes)
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        veiculo.observacoes.map((o: any) => (typeof o === "string" ? o : o?.descricao)).filter(
+          (x: unknown): x is string => Boolean(x)
+        )
+      : [],
     proprietarioNome: veiculo?.nomeProprietario || undefined,
     proprietarioCnpj: documento.length === 14 ? documento : undefined,
   };

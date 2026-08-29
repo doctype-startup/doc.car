@@ -72,6 +72,8 @@ export type VeiculoReal = {
   numeroSequencialDocumento?: string;
   /** Código de segurança do CRV/CRLV. */
   codigoSegurancaCrv?: string;
+  /** Situação do chassi (código do provedor, ex: "N" = normal). */
+  situacaoChassi?: string;
   fipe: { descricao?: string; valor: number } | null;
   restricoes: string[];
   indicadores: {
@@ -158,6 +160,7 @@ function sanitizeVeiculo(raw: any): VeiculoReal {
         : undefined,
     numeroSequencialDocumento: v.indicadores?.sequencial_documento || undefined,
     codigoSegurancaCrv: v.indicadores?.codigo_seguranca_crv || undefined,
+    situacaoChassi: v.situacao_chassi || undefined,
     fipe:
       fipeValor !== undefined
         ? { descricao: v.fipe?.descricao || undefined, valor: fipeValor }
