@@ -399,6 +399,18 @@ function DashboardContent() {
                   <span className="value">{veiculoReal.dataUltimaAtualizacao}</span>
                 </div>
               )}
+              {veiculoReal?.numeroCrv && (
+                <div className="kv">
+                  <span className="label">Número do CRV</span>
+                  <span className="value">{veiculoReal.numeroCrv}</span>
+                </div>
+              )}
+              {veiculoReal?.codigoSegurancaCrv && (
+                <div className="kv">
+                  <span className="label">Código de segurança do CRV</span>
+                  <span className="value">{veiculoReal.codigoSegurancaCrv}</span>
+                </div>
+              )}
               <div className="kv">
                 <span className="label">Valor FIPE</span>
                 <span className="value">
@@ -588,6 +600,31 @@ function DashboardContent() {
               <p className="form-error" style={{ marginBottom: 12 }}>
                 {avancadaError}
               </p>
+            )}
+
+            {(avancada?.anoUltimoLicenciamento ||
+              avancada?.numeroCrv ||
+              avancada?.codigoSegurancaCrv) && (
+              <div className="grid-2" style={{ marginBottom: 12 }}>
+                {avancada.anoUltimoLicenciamento && (
+                  <div className="kv">
+                    <span className="label">Ano do último licenciamento</span>
+                    <span className="value">{avancada.anoUltimoLicenciamento}</span>
+                  </div>
+                )}
+                {avancada.numeroCrv && (
+                  <div className="kv">
+                    <span className="label">Número do CRV</span>
+                    <span className="value">{avancada.numeroCrv}</span>
+                  </div>
+                )}
+                {avancada.codigoSegurancaCrv && (
+                  <div className="kv">
+                    <span className="label">Código de segurança do CRV</span>
+                    <span className="value">{avancada.codigoSegurancaCrv}</span>
+                  </div>
+                )}
+              </div>
             )}
 
             {avancada ? (
