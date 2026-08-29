@@ -244,6 +244,17 @@ function DashboardContent() {
         </details>
       )}
 
+      {(avancada !== null || avancadaError) && (
+        <details className="debug-details">
+          <summary>Retorno da consulta avançada (modo depuração)</summary>
+          {avancadaError ? (
+            <p style={{ fontSize: 13, color: "var(--danger)", marginTop: 12 }}>{avancadaError}</p>
+          ) : (
+            <pre>{JSON.stringify(avancada, null, 2)}</pre>
+          )}
+        </details>
+      )}
+
       {result && (
         <div className="printable-report">
           <div className="print-header">
@@ -270,6 +281,9 @@ function DashboardContent() {
                   )}
                   {veiculoReal.indicadores.restricaoJudicial && (
                     <span className="badge warn">Restrição judicial</span>
+                  )}
+                  {veiculoReal.indicadores.multa && (
+                    <span className="badge warn">Multa</span>
                   )}
                 </>
               ) : (
@@ -332,6 +346,18 @@ function DashboardContent() {
                 <span className="label">Chassi</span>
                 <span className="value">{veiculoReal ? veiculoReal.chassi || "—" : result.chassi}</span>
               </div>
+              {veiculoReal?.placaMercosul && (
+                <div className="kv">
+                  <span className="label">Placa Mercosul</span>
+                  <span className="value">{veiculoReal.placaMercosul}</span>
+                </div>
+              )}
+              {veiculoReal?.placaAnterior && (
+                <div className="kv">
+                  <span className="label">Placa anterior</span>
+                  <span className="value">{veiculoReal.placaAnterior}</span>
+                </div>
+              )}
               {veiculoReal ? (
                 <div className="kv">
                   <span className="label">Proprietário</span>
@@ -347,6 +373,30 @@ function DashboardContent() {
                 <div className="kv">
                   <span className="label">CNPJ do proprietário</span>
                   <span className="value">{formatCnpj(veiculoReal.proprietarioCnpj)}</span>
+                </div>
+              )}
+              {veiculoReal?.cnpjFaturado && (
+                <div className="kv">
+                  <span className="label">CNPJ da fatura original</span>
+                  <span className="value">{formatCnpj(veiculoReal.cnpjFaturado)}</span>
+                </div>
+              )}
+              {veiculoReal?.anoUltimoLicenciamento && (
+                <div className="kv">
+                  <span className="label">Ano do último licenciamento</span>
+                  <span className="value">{veiculoReal.anoUltimoLicenciamento}</span>
+                </div>
+              )}
+              {veiculoReal?.dataEmplacamento && (
+                <div className="kv">
+                  <span className="label">Emplacamento</span>
+                  <span className="value">{veiculoReal.dataEmplacamento}</span>
+                </div>
+              )}
+              {veiculoReal?.dataUltimaAtualizacao && (
+                <div className="kv">
+                  <span className="label">Dados atualizados em</span>
+                  <span className="value">{veiculoReal.dataUltimaAtualizacao}</span>
                 </div>
               )}
               <div className="kv">
@@ -374,6 +424,122 @@ function DashboardContent() {
               </div>
             </div>
           </div>
+
+          {veiculoReal && (
+            <div className="card">
+              <h3>
+                Especificações técnicas <span className="badge ok">Dados reais</span>
+              </h3>
+              <div className="grid-3">
+                {veiculoReal.tipoVeiculo && (
+                  <div className="kv">
+                    <span className="label">Tipo</span>
+                    <span className="value">{veiculoReal.tipoVeiculo}</span>
+                  </div>
+                )}
+                {veiculoReal.especie && (
+                  <div className="kv">
+                    <span className="label">Espécie</span>
+                    <span className="value">{veiculoReal.especie}</span>
+                  </div>
+                )}
+                {veiculoReal.carroceria && (
+                  <div className="kv">
+                    <span className="label">Carroceria</span>
+                    <span className="value">{veiculoReal.carroceria}</span>
+                  </div>
+                )}
+                {veiculoReal.categoria && (
+                  <div className="kv">
+                    <span className="label">Categoria</span>
+                    <span className="value">{veiculoReal.categoria}</span>
+                  </div>
+                )}
+                {veiculoReal.nacionalidade && (
+                  <div className="kv">
+                    <span className="label">Nacionalidade</span>
+                    <span className="value">{veiculoReal.nacionalidade}</span>
+                  </div>
+                )}
+                {veiculoReal.tipoMontagem && (
+                  <div className="kv">
+                    <span className="label">Montagem</span>
+                    <span className="value">{veiculoReal.tipoMontagem}</span>
+                  </div>
+                )}
+                {veiculoReal.motor && (
+                  <div className="kv">
+                    <span className="label">Motor</span>
+                    <span className="value">{veiculoReal.motor}</span>
+                  </div>
+                )}
+                {veiculoReal.potencia && (
+                  <div className="kv">
+                    <span className="label">Potência</span>
+                    <span className="value">{veiculoReal.potencia} cv</span>
+                  </div>
+                )}
+                {veiculoReal.cilindradas && (
+                  <div className="kv">
+                    <span className="label">Cilindradas</span>
+                    <span className="value">{veiculoReal.cilindradas}</span>
+                  </div>
+                )}
+                {veiculoReal.eixos && (
+                  <div className="kv">
+                    <span className="label">Eixos</span>
+                    <span className="value">{veiculoReal.eixos}</span>
+                  </div>
+                )}
+                {veiculoReal.lotacao && (
+                  <div className="kv">
+                    <span className="label">Lotação</span>
+                    <span className="value">{veiculoReal.lotacao}</span>
+                  </div>
+                )}
+                {veiculoReal.pesoBrutoTotal && (
+                  <div className="kv">
+                    <span className="label">Peso bruto total</span>
+                    <span className="value">{veiculoReal.pesoBrutoTotal}</span>
+                  </div>
+                )}
+                {veiculoReal.capacidadeCarga && (
+                  <div className="kv">
+                    <span className="label">Capacidade de carga</span>
+                    <span className="value">{veiculoReal.capacidadeCarga}</span>
+                  </div>
+                )}
+                {veiculoReal.capMaximaTracao && (
+                  <div className="kv">
+                    <span className="label">Capacidade máx. de tração</span>
+                    <span className="value">{veiculoReal.capMaximaTracao}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {veiculoReal && veiculoReal.quilometragem.length > 0 && (
+            <div className="card">
+              <h3>
+                Histórico de quilometragem <span className="badge ok">Dados reais</span>
+              </h3>
+              <div className="grid-2">
+                {veiculoReal.quilometragem.map((leitura, idx) => (
+                  <div className="kv" key={idx}>
+                    <span className="label">
+                      {leitura.data || "Data não informada"}
+                      {leitura.origem && ` · ${leitura.origem}`}
+                    </span>
+                    <span className="value">
+                      {leitura.km.toLocaleString("pt-BR")} km
+                      {leitura.municipio && ` · ${leitura.municipio}${leitura.uf ? `/${leitura.uf}` : ""}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="card">
             <h3>
@@ -447,10 +613,16 @@ function DashboardContent() {
                       </div>
                       <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
                         {[
+                          multa.codigo && `Código ${multa.codigo}`,
                           multa.tipoMulta,
+                          multa.gravidade && `Gravidade: ${multa.gravidade}`,
                           multa.infrator && `Responsável: ${multa.infrator}`,
                           multa.orgaoCompetente && `Órgão: ${multa.orgaoCompetente}`,
                           multa.amparoLegal && `Art. ${multa.amparoLegal}`,
+                          multa.quantidade > 1 && `${multa.quantidade}x`,
+                          `${currency.format(multa.valorUnitario)} unit.`,
+                          multa.multiplicador !== 1 && `Multiplicador ${multa.multiplicador}x`,
+                          `${multa.pontosUnitario} pts unit.`,
                           `${multa.pontosTotal} pontos`,
                         ]
                           .filter(Boolean)
@@ -515,6 +687,24 @@ function DashboardContent() {
                     <span className="label">Observação</span>
                     <span className="value">{avancada.rouboFurto.descricao || "—"}</span>
                   </div>
+                  {avancada.rouboFurto.numeroBoletim && (
+                    <div className="kv">
+                      <span className="label">Boletim</span>
+                      <span className="value">{avancada.rouboFurto.numeroBoletim}</span>
+                    </div>
+                  )}
+                  {avancada.rouboFurto.orgaoSeguranca && (
+                    <div className="kv">
+                      <span className="label">Órgão de segurança</span>
+                      <span className="value">{avancada.rouboFurto.orgaoSeguranca}</span>
+                    </div>
+                  )}
+                  {avancada.rouboFurto.quantidade !== undefined && (
+                    <div className="kv">
+                      <span className="label">Ocorrências</span>
+                      <span className="value">{avancada.rouboFurto.quantidade}</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
@@ -527,6 +717,11 @@ function DashboardContent() {
               <h3>
                 Restrições judiciais (Renajud) <span className="badge ok">Dados reais</span>
               </h3>
+              {avancada.possuiRestricaoExtrajudicial && (
+                <span className="badge warn" style={{ marginBottom: 12 }}>
+                  Restrição extrajudicial (ex: alienação fiduciária)
+                </span>
+              )}
               {avancada.possuiRestricaoJudicial ? (
                 avancada.restricoesJudiciais.map((restricao, idx) => (
                   <div key={idx} style={{ marginBottom: 10 }}>
@@ -544,7 +739,12 @@ function DashboardContent() {
                       <span className="badge warn">Restrição judicial</span>
                     )}
                     <p style={{ fontSize: 13, marginTop: 6, color: "var(--muted)" }}>
-                      {[restricao.tribunal, restricao.processo && `Processo ${restricao.processo}`]
+                      {[
+                        restricao.tribunal,
+                        restricao.orgaoJudiciario,
+                        restricao.ramo && `Ramo: ${restricao.ramo}`,
+                        restricao.processo && `Processo ${restricao.processo}`,
+                      ]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
