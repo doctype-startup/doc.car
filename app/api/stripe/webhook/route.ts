@@ -14,6 +14,15 @@ function extractPeriodEnd(subscription: Stripe.Subscription) {
   return seconds ? new Date(seconds * 1000).toISOString() : null;
 }
 
+function extractPeriodStart(subscription: Stripe.Subscription) {
+  const item = subscription.items.data[0];
+  const seconds =
+    (item as unknown as { current_period_start?: number })?.current_period_start ??
+    (subscription as unknown as { current_period_start?: number })
+      .current_period_start;
+  return seconds ? new Date(seconds * 1000).toISOString() : null;
+}
+
 async function upsertSubscription(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.supabase_user_id;
   if (!userId) {
@@ -31,6 +40,7 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
       stripe_subscription_id: subscription.id,
       status: subscription.status,
       price_id: subscription.items.data[0]?.price.id,
+      current_period_start: extractPeriodStart(subscription),
       current_period_end: extractPeriodEnd(subscription),
       updated_at: new Date().toISOString(),
     },

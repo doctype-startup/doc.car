@@ -1,6 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { consultarAvancadaPorPlaca, isDebitosApiConfigured } from "@/lib/dados-avancados";
+import { contarUsoNoPeriodo, registrarUsoAvancada } from "@/lib/uso-avancada";
+import { getPlanoPorPriceId, PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
+
+function inicioDoPeriodo(currentPeriodStart: string | null) {
+  if (currentPeriodStart) return currentPeriodStart;
+  // Assinaturas antigas (de antes dessa coluna existir) não têm início de
+  // período salvo — usa o começo do mês corrente como aproximação.
+  const inicioDoMes = new Date();
+  inicioDoMes.setDate(1);
+  inicioDoMes.setHours(0, 0, 0, 0);
+  return inicioDoMes.toISOString();
+}
+
+async function cobrarAvulso(stripeCustomerId: string | null, placa: string) {
+  if (!isStripeConfigured || !stripeCustomerId) {
+    console.error(
+      `[consulta-avancada] cobrança avulsa não registrada (Stripe/cliente indisponível) — placa=${placa}`
+    );
+    return;
+  }
+  try {
+    await getStripe().invoiceItems.create({
+      customer: stripeCustomerId,
+      amount: PRECO_AVULSO_CENTAVOS,
+      currency: "brl",
+      description: `Consulta avançada avulsa — placa ${placa}`,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    console.error(`[consulta-avancada] falha ao cobrar avulso: ${message}`);
+  }
+}
 
 export async function GET(request: NextRequest) {
   const placa = request.nextUrl.searchParams.get("placa") || "";
@@ -19,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   const { data: subscription } = await supabase
     .from("subscriptions")
-    .select("status")
+    .select("status, price_id, current_period_start, stripe_customer_id")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -37,6 +70,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const plano = getPlanoPorPriceId(subscription?.price_id);
+  const desde = inicioDoPeriodo(subscription?.current_period_start ?? null);
+  const usoNoPeriodo = plano ? await contarUsoNoPeriodo(supabase, user.id, desde) : 0;
+  const estourouCota = plano ? usoNoPeriodo >= plano.cota : false;
+
   const result = await consultarAvancadaPorPlaca(placa);
 
   console.log(`[dados-avancados] placa=${placa} ok=${result.ok}`);
@@ -45,5 +83,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: result.errorMessage }, { status: 502 });
   }
 
-  return NextResponse.json({ data: result.data });
+  await registrarUsoAvancada({ userId: user.id, placa, cobradaAvulsa: estourouCota });
+  if (estourouCota) {
+    await cobrarAvulso(subscription?.stripe_customer_id ?? null, placa);
+  }
+
+  return NextResponse.json({
+    data: result.data,
+    saldo: plano
+      ? { cota: plano.cota, usado: usoNoPeriodo + 1, cobradaAvulsa: estourouCota }
+      : null,
+  });
 }
