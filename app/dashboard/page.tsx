@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent, Suspense } from "react";
+import { useEffect, useRef, useState, FormEvent, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   isValidPlaca,
@@ -9,8 +9,8 @@ import {
   VehicleQuery,
 } from "@/lib/vehicle";
 import { addHistory } from "@/lib/history";
-import { VeiculoReal } from "@/lib/dados-veiculo";
-import { ConsultaAvancada, formatCnpj } from "@/lib/dados-avancados";
+import { VeiculoReal, formatCnpj } from "@/lib/dados-veiculo";
+import { ConsultaAvancada } from "@/lib/dados-avancados";
 import Guardiao from "@/components/Guardiao";
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -40,6 +40,14 @@ function DashboardContent() {
   const [avancada, setAvancada] = useState<ConsultaAvancada | null>(null);
   const [avancadaError, setAvancadaError] = useState("");
   const [avancadaLoading, setAvancadaLoading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeout.current) clearTimeout(toastTimeout.current);
+    };
+  }, []);
 
   async function runSearch(value: string) {
     setError("");
@@ -48,6 +56,8 @@ function DashboardContent() {
     setCpfCnpjCliente("");
     setAvancada(null);
     setAvancadaError("");
+    setShowToast(false);
+    if (toastTimeout.current) clearTimeout(toastTimeout.current);
 
     if (!isValidPlaca(value)) {
       setError("Informe uma placa válida, ex: ABC1D23 ou ABC1234.");
@@ -66,6 +76,8 @@ function DashboardContent() {
       const payload = await response.json();
       if (response.ok) {
         setVeiculoReal(payload.data);
+        setShowToast(true);
+        toastTimeout.current = setTimeout(() => setShowToast(false), 4500);
       } else {
         setRealError(payload.error || "Consulta real indisponível.");
       }
@@ -177,9 +189,17 @@ function DashboardContent() {
 
       {!result && !error && !loading && (
         <div className="empty-state">
-          <Guardiao pose="aguardando" />
-          Nenhuma consulta realizada ainda. Digite uma placa acima para
-          começar.
+          <Guardiao
+            pose="aguardando"
+            mensagem="Nenhuma consulta realizada ainda. Digite uma placa acima que eu já trago a ficha completa."
+          />
+        </div>
+      )}
+
+      {showToast && (
+        <div className="guardiao-toast no-print">
+          <Guardiao pose="sucesso" />
+          <p>Consulta encontrada com sucesso!</p>
         </div>
       )}
 
@@ -287,6 +307,12 @@ function DashboardContent() {
                 <div className="kv">
                   <span className="label">Vencimento do licenciamento</span>
                   <span className="value">{result.vencimentoLicenciamento}</span>
+                </div>
+              )}
+              {veiculoReal?.proprietarioCnpj && (
+                <div className="kv">
+                  <span className="label">CNPJ do proprietário</span>
+                  <span className="value">{formatCnpj(veiculoReal.proprietarioCnpj)}</span>
                 </div>
               )}
               <div className="kv">

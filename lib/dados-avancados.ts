@@ -39,12 +39,6 @@ export type ConsultaAvancadaResult =
   | { ok: true; data: ConsultaAvancada }
   | { ok: false; errorMessage: string };
 
-export function formatCnpj(cnpj: string) {
-  const digits = cnpj.replace(/\D/g, "");
-  if (digits.length !== 14) return cnpj;
-  return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sanitizeAvancada(raw: any): ConsultaAvancada {
   const d = raw?.dados || {};
