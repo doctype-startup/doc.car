@@ -4,6 +4,14 @@ export const isPlacaApiConfigured = Boolean(token);
 
 const BASE_URL = "https://uriahahahaplaca.processalead.site/public/proxy.php";
 
+export type LeituraQuilometragem = {
+  km: number;
+  data?: string;
+  origem?: string;
+  municipio?: string;
+  uf?: string;
+};
+
 export type VeiculoReal = {
   placa: string;
   placaAnterior?: string;
@@ -19,15 +27,43 @@ export type VeiculoReal = {
   municipio?: string;
   uf?: string;
   situacaoVeiculo?: string;
+  tipoVeiculo?: string;
+  especie?: string;
+  carroceria?: string;
+  categoria?: string;
+  nacionalidade?: string;
+  tipoMontagem?: string;
+  motor?: string;
+  potencia?: string;
+  cilindradas?: string;
+  eixos?: string;
+  lotacao?: string;
+  pesoBrutoTotal?: string;
+  capacidadeCarga?: string;
+  capMaximaTracao?: string;
+  /** Ano do último licenciamento registrado no provedor. */
+  anoUltimoLicenciamento?: string;
+  dataEmplacamento?: string;
+  dataUltimaAtualizacao?: string;
+  /** Histórico de leituras de odômetro (ex: anúncios em portais de venda) —
+   * dado do veículo, não de pessoa. */
+  quilometragem: LeituraQuilometragem[];
   /** Só o nome do proprietário atual — CPF, nome da mãe, endereço, telefone,
    * e-mail e qualquer outro dado pessoal do bloco `dados_credfy` do provedor
-   * são descartados aqui e nunca saem desta função. */
+   * são descartados aqui e nunca saem desta função. O histórico de
+   * proprietários anteriores (`historico_proprietario`) também nunca é lido:
+   * traria o mesmo dossiê pessoal completo de terceiros que já não têm
+   * nenhuma relação com a consulta atual. */
   proprietarioNome?: string;
   /** CNPJ do proprietário, só quando ele é pessoa jurídica (frota, locadora,
    * concessionária). CNPJ é registro público de empresa, não dado pessoal
    * protegido pela LGPD como o CPF — por isso, ao contrário do CPF, este
    * campo é liberado. Nunca populado quando o proprietário é pessoa física. */
   proprietarioCnpj?: string;
+  /** CNPJ de quem faturou o veículo originalmente (concessionária/locadora),
+   * só quando esse documento é de pessoa jurídica — mesma regra do CNPJ do
+   * proprietário acima. */
+  cnpjFaturado?: string;
   fipe: { descricao?: string; valor: number } | null;
   restricoes: string[];
   indicadores: {
@@ -59,6 +95,17 @@ function sanitizeVeiculo(raw: any): VeiculoReal {
 
   const fipeValor = v?.fipe?.valor_medio ? Number(v.fipe.valor_medio) : undefined;
 
+  const quilometragem: LeituraQuilometragem[] = Array.isArray(v?.quilometragem)
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      v.quilometragem.map((k: any) => ({
+        km: Number(k?.km ?? 0),
+        data: k?.data_registro || undefined,
+        origem: k?.origem || undefined,
+        municipio: k?.cidade || undefined,
+        uf: k?.uf || undefined,
+      }))
+    : [];
+
   return {
     placa: v.placa || raw?.dados?.placa_consulta || "",
     placaAnterior: v.placa_anterior || undefined,
@@ -74,10 +121,32 @@ function sanitizeVeiculo(raw: any): VeiculoReal {
     municipio: v.municipio?.nome || undefined,
     uf: v.municipio?.uf || v.uf_placa || undefined,
     situacaoVeiculo: v.situacao_veiculo?.descricao || undefined,
+    tipoVeiculo: v.tipo_veiculo?.descricao || undefined,
+    especie: v.especie?.descricao || undefined,
+    carroceria: v.carroceria?.descricao || undefined,
+    categoria: v.categoria || undefined,
+    nacionalidade: v.nacionalidade?.descricao || undefined,
+    tipoMontagem: v.tipo_montagem?.descricao || undefined,
+    motor: v.motor || undefined,
+    potencia: v.potencia || undefined,
+    cilindradas: v.cilindradas || undefined,
+    eixos: v.eixos || undefined,
+    lotacao: v.lotacao || undefined,
+    pesoBrutoTotal: v.peso_bruto_total || undefined,
+    capacidadeCarga: v.capacidade_carga || undefined,
+    capMaximaTracao: v.cap_maxima_tracao || undefined,
+    anoUltimoLicenciamento: v.datas?.ano_ultimo_licenciamento || undefined,
+    dataEmplacamento: v.datas?.emplacamento || undefined,
+    dataUltimaAtualizacao: v.datas?.ultima_atualizacao || undefined,
+    quilometragem,
     proprietarioNome: v.proprietario_atual?.nome || undefined,
     proprietarioCnpj:
       v.proprietario_atual?.tipo === "Juridica"
         ? v.proprietario_atual?.cpf_cnpj || undefined
+        : undefined,
+    cnpjFaturado:
+      v.doc_faturado?.tipo?.descricao === "Juridica"
+        ? v.doc_faturado?.documento || undefined
         : undefined,
     fipe:
       fipeValor !== undefined

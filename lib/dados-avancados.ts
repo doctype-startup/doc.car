@@ -9,6 +9,9 @@ export type OcorrenciaRouboFurto = {
   data?: string;
   municipio?: string;
   descricao?: string;
+  numeroBoletim?: string;
+  orgaoSeguranca?: string;
+  quantidade?: number;
 };
 
 export type Multa = {
@@ -51,6 +54,15 @@ export type ConsultaAvancada = {
   rouboFurto: OcorrenciaRouboFurto | null;
   possuiRestricaoJudicial: boolean;
   restricoesJudiciais: RestricaoRenajud[];
+  /** Restrição extrajudicial (ex: alienação fiduciária, arrendamento
+   * mercantil, reserva de domínio) — o provedor só confirmou o formato
+   * desse indicador; os itens de `processosExtrajud` ainda não foram
+   * mapeados em detalhe por falta de um exemplo preenchido. */
+  possuiRestricaoExtrajudicial: boolean;
+  /** Ano do último licenciamento — pode não bater com o mesmo campo em
+   * VeiculoReal (provedores diferentes); prefira o de VeiculoReal quando
+   * os dois estiverem disponíveis. */
+  anoUltimoLicenciamento?: string;
   /** Nome do proprietário atual — mesma exceção já aplicada em
    * lib/dados-veiculo.ts: o nome, isoladamente, não é o dado sensível aqui
    * (o despachante tem necessidade legítima de saber de quem é o veículo).
@@ -88,6 +100,9 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
           data: ocorrenciaRaw?.data || undefined,
           municipio: ocorrenciaRaw?.municipio || undefined,
           descricao: ocorrenciaRaw?.descricao || undefined,
+          numeroBoletim: ocorrenciaRaw?.numeroBoletimAno || undefined,
+          orgaoSeguranca: ocorrenciaRaw?.orgaoSegurancaUf || undefined,
+          quantidade: ocorrenciaRaw?.quantidade ? Number(ocorrenciaRaw.quantidade) : undefined,
         }
       : null;
 
@@ -136,6 +151,10 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
     rouboFurto,
     possuiRestricaoJudicial: Boolean(veiculo?.possuiRestricaoJudicial),
     restricoesJudiciais,
+    possuiRestricaoExtrajudicial: Boolean(veiculo?.possuiRestricaoExtrajud),
+    anoUltimoLicenciamento: veiculo?.anoUltimoLicenciamento
+      ? String(veiculo.anoUltimoLicenciamento)
+      : undefined,
     proprietarioNome: veiculo?.nomeProprietario || undefined,
     proprietarioCnpj: documento.length === 14 ? documento : undefined,
   };
