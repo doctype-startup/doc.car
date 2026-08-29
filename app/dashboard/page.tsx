@@ -20,6 +20,15 @@ const currency = new Intl.NumberFormat("pt-BR", {
 
 const PLACAS_EXEMPLO = ["ABC1D23", "QRS4567", "JKL8M90"];
 
+/** Protocolo interno da consulta — gerado por nós na hora, sem nenhuma
+ * relação com dados do provedor (placa, veículo ou proprietário). Serve
+ * só pra o despachante referenciar essa consulta específica depois. */
+function gerarChamadoId() {
+  const carimbo = Date.now().toString(36).toUpperCase();
+  const sufixo = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `DC-${carimbo}-${sufixo}`;
+}
+
 export default function DashboardPage() {
   return (
     <Suspense fallback={null}>
@@ -37,6 +46,7 @@ function DashboardContent() {
   const [veiculoReal, setVeiculoReal] = useState<VeiculoReal | null>(null);
   const [realError, setRealError] = useState("");
   const [cpfCnpjCliente, setCpfCnpjCliente] = useState("");
+  const [chamadoId, setChamadoId] = useState("");
   const [avancada, setAvancada] = useState<ConsultaAvancada | null>(null);
   const [avancadaError, setAvancadaError] = useState("");
   const [avancadaLoading, setAvancadaLoading] = useState(false);
@@ -69,6 +79,7 @@ function DashboardContent() {
 
     const data = lookupVehicle(value);
     setResult(data);
+    setChamadoId(gerarChamadoId());
     void addHistory(data.placa);
 
     try {
@@ -256,6 +267,10 @@ function DashboardContent() {
             </div>
 
             <div className="grid-3">
+              <div className="kv">
+                <span className="label">Chamado ID</span>
+                <span className="value">{chamadoId}</span>
+              </div>
               <div className="kv">
                 <span className="label">Marca/Modelo</span>
                 <span className="value">
