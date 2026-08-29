@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, FormEvent } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Guardiao from "@/components/Guardiao";
+import { getPlanoPorId } from "@/lib/plans";
 
 type Tab = "login" | "signup";
 
@@ -23,10 +24,22 @@ function translateAuthError(message: string) {
 export default function LoginSignupForm() {
   const router = useRouter();
   const supabase = createClient();
-  const [tab, setTab] = useState<Tab>("login");
+  const searchParams = useSearchParams();
+  const planoParam = searchParams.get("plano");
+  const planoEscolhido = getPlanoPorId(planoParam);
+  const destinoAposAuth = planoEscolhido ? `/assinar?plano=${planoEscolhido.id}` : "/dashboard";
+  const [tab, setTab] = useState<Tab>(planoEscolhido ? "signup" : "login");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (planoEscolhido) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- switches to the signup tab when arriving via a ?plano= link
+      setTab("signup");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planoParam]);
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,7 +61,7 @@ export default function LoginSignupForm() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(destinoAposAuth);
     router.refresh();
   }
 
@@ -81,7 +94,7 @@ export default function LoginSignupForm() {
     }
 
     if (data.session) {
-      router.push("/dashboard");
+      router.push(destinoAposAuth);
       router.refresh();
       return;
     }
@@ -167,6 +180,12 @@ export default function LoginSignupForm() {
         <>
           <h2>Criar conta de despachante</h2>
           <p>Cadastre-se para começar a consultar veículos.</p>
+          {planoEscolhido && (
+            <div className="form-success" style={{ marginTop: 12 }}>
+              Plano selecionado: <strong>{planoEscolhido.nome}</strong>. Depois de
+              criar a conta você vai direto pra tela de pagamento.
+            </div>
+          )}
           <form className="login-form" onSubmit={handleSignup}>
             {error && <div className="form-error">{error}</div>}
             <label className="field">
