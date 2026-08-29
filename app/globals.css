@@ -620,6 +620,19 @@ button.wide {
   margin: 0 auto 16px;
 }
 
+.empty-state .guardiao-fala {
+  flex-direction: column;
+}
+
+.empty-state .guardiao-balao {
+  margin: 0 auto;
+  text-align: left;
+}
+
+.empty-state .guardiao-balao::before {
+  display: none;
+}
+
 .loading-state {
   display: flex;
   align-items: center;
@@ -753,5 +766,146 @@ button.wide {
 
   .badge {
     border: 1px solid currentColor;
+  }
+}
+
+/* ---------- Guardião com fala ---------- */
+
+.guardiao-fala {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.guardiao-balao {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 260px;
+}
+
+.guardiao-balao::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* ---------- Assistente flutuante ---------- */
+
+.guardiao-helper {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+}
+
+.guardiao-helper-toggle {
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: none;
+  background: var(--navy);
+  box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+}
+
+.guardiao-helper-toggle:hover {
+  background: var(--navy-light);
+}
+
+.guardiao-helper-toggle .guardiao {
+  width: 44px;
+  height: 44px;
+}
+
+.guardiao-helper-panel {
+  position: absolute;
+  bottom: 68px;
+  right: 0;
+  width: 260px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 40px rgba(6, 19, 63, 0.25);
+  padding: 16px;
+}
+
+.guardiao-helper-panel h4 {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--doctype-navy);
+}
+
+.guardiao-helper-panel p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ---------- Toast de sucesso ---------- */
+
+.guardiao-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 96px;
+  z-index: 41;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 40px rgba(6, 19, 63, 0.25);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 300px;
+  animation: guardiao-toast-in 0.25s ease-out;
+}
+
+.guardiao-toast .guardiao {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.guardiao-toast p {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+@keyframes guardiao-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media print {
+  .guardiao-helper,
+  .guardiao-toast {
+    display: none !important;
   }
 }

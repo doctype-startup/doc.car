@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./sign-out-button";
 import NavTabs from "./nav-tabs";
+import GuardiaoHelper from "@/components/GuardiaoHelper";
 
 export default async function DashboardLayout({
   children,
@@ -55,6 +56,7 @@ export default async function DashboardLayout({
       </header>
       <div className="orange-line" />
       <main className="app-content">{children}</main>
+      <GuardiaoHelper />
     </div>
   );
 }

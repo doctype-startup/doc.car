@@ -41,17 +41,20 @@ export default function Guardiao({
   pose,
   size = 96,
   className,
+  mensagem,
 }: {
   pose: GuardiaoPose;
   size?: number;
   className?: string;
+  /** Quando informado, mostra um balão de fala ao lado da imagem. */
+  mensagem?: string;
 }) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
 
   const { src, alt } = poses[pose];
 
-  return (
+  const img = (
     <img
       src={src}
       alt={alt}
@@ -60,5 +63,14 @@ export default function Guardiao({
       className={`guardiao${className ? ` ${className}` : ""}`}
       onError={() => setHidden(true)}
     />
+  );
+
+  if (!mensagem) return img;
+
+  return (
+    <div className="guardiao-fala">
+      {img}
+      <p className="guardiao-balao">{mensagem}</p>
+    </div>
   );
 }

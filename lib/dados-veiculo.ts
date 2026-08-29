@@ -23,6 +23,11 @@ export type VeiculoReal = {
    * e-mail e qualquer outro dado pessoal do bloco `dados_credfy` do provedor
    * são descartados aqui e nunca saem desta função. */
   proprietarioNome?: string;
+  /** CNPJ do proprietário, só quando ele é pessoa jurídica (frota, locadora,
+   * concessionária). CNPJ é registro público de empresa, não dado pessoal
+   * protegido pela LGPD como o CPF — por isso, ao contrário do CPF, este
+   * campo é liberado. Nunca populado quando o proprietário é pessoa física. */
+  proprietarioCnpj?: string;
   fipe: { descricao?: string; valor: number } | null;
   restricoes: string[];
   indicadores: {
@@ -31,6 +36,12 @@ export type VeiculoReal = {
     multa: boolean;
   };
 };
+
+export function formatCnpj(cnpj: string) {
+  const digits = cnpj.replace(/\D/g, "");
+  if (digits.length !== 14) return cnpj;
+  return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+}
 
 export type ConsultaVeiculoResult =
   | { ok: true; data: VeiculoReal }
@@ -64,6 +75,10 @@ function sanitizeVeiculo(raw: any): VeiculoReal {
     uf: v.municipio?.uf || v.uf_placa || undefined,
     situacaoVeiculo: v.situacao_veiculo?.descricao || undefined,
     proprietarioNome: v.proprietario_atual?.nome || undefined,
+    proprietarioCnpj:
+      v.proprietario_atual?.tipo === "Juridica"
+        ? v.proprietario_atual?.cpf_cnpj || undefined
+        : undefined,
     fipe:
       fipeValor !== undefined
         ? { descricao: v.fipe?.descricao || undefined, valor: fipeValor }
