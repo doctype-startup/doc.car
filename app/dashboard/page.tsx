@@ -399,10 +399,10 @@ function DashboardContent() {
                   <span className="value">{veiculoReal.dataUltimaAtualizacao}</span>
                 </div>
               )}
-              {veiculoReal?.numeroCrv && (
+              {veiculoReal?.numeroSequencialDocumento && (
                 <div className="kv">
-                  <span className="label">Número do CRV</span>
-                  <span className="value">{veiculoReal.numeroCrv}</span>
+                  <span className="label">Número sequencial do documento</span>
+                  <span className="value">{veiculoReal.numeroSequencialDocumento}</span>
                 </div>
               )}
               {veiculoReal?.codigoSegurancaCrv && (
@@ -604,6 +604,7 @@ function DashboardContent() {
 
             {(avancada?.anoUltimoLicenciamento ||
               avancada?.numeroCrv ||
+              avancada?.numeroSequencialDocumento ||
               avancada?.codigoSegurancaCrv) && (
               <div className="grid-2" style={{ marginBottom: 12 }}>
                 {avancada.anoUltimoLicenciamento && (
@@ -614,8 +615,14 @@ function DashboardContent() {
                 )}
                 {avancada.numeroCrv && (
                   <div className="kv">
-                    <span className="label">Número do CRV</span>
+                    <span className="label">Número do CRV (impresso no documento)</span>
                     <span className="value">{avancada.numeroCrv}</span>
+                  </div>
+                )}
+                {avancada.numeroSequencialDocumento && (
+                  <div className="kv">
+                    <span className="label">Número sequencial do documento</span>
+                    <span className="value">{avancada.numeroSequencialDocumento}</span>
                   </div>
                 )}
                 {avancada.codigoSegurancaCrv && (
