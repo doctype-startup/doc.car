@@ -10,6 +10,7 @@ import {
 } from "@/lib/vehicle";
 import { addHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj } from "@/lib/dados-veiculo";
+import { ConsultaAvancada } from "@/lib/dados-avancados";
 import Guardiao from "@/components/Guardiao";
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -36,6 +37,9 @@ function DashboardContent() {
   const [veiculoReal, setVeiculoReal] = useState<VeiculoReal | null>(null);
   const [realError, setRealError] = useState("");
   const [cpfCnpjCliente, setCpfCnpjCliente] = useState("");
+  const [avancada, setAvancada] = useState<ConsultaAvancada | null>(null);
+  const [avancadaError, setAvancadaError] = useState("");
+  const [avancadaLoading, setAvancadaLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -50,6 +54,8 @@ function DashboardContent() {
     setVeiculoReal(null);
     setRealError("");
     setCpfCnpjCliente("");
+    setAvancada(null);
+    setAvancadaError("");
     setShowToast(false);
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
 
@@ -80,6 +86,30 @@ function DashboardContent() {
     }
 
     setLoading(false);
+  }
+
+  async function runAvancada() {
+    const placaAlvo = veiculoReal?.placa || result?.placa;
+    if (!placaAlvo) return;
+
+    setAvancadaLoading(true);
+    setAvancadaError("");
+
+    try {
+      const response = await fetch(
+        `/api/consulta-avancada?placa=${encodeURIComponent(placaAlvo)}`
+      );
+      const payload = await response.json();
+      if (response.ok) {
+        setAvancada(payload.data);
+      } else {
+        setAvancadaError(payload.error || "Consulta avançada indisponível.");
+      }
+    } catch {
+      setAvancadaError("Não foi possível contatar o provedor de dados avançados.");
+    }
+
+    setAvancadaLoading(false);
   }
 
   useEffect(() => {
@@ -142,8 +172,10 @@ function DashboardContent() {
 
       <div className="info-banner">
         Ficha do veículo, FIPE e restrições vêm do provedor de dados real
-        quando a consulta funciona. Débitos e multas abaixo continuam
-        simulados — não fazem parte do retorno desse provedor.
+        quando a consulta funciona. Débitos (IPVA/licenciamento) continuam
+        simulados. Multas, roubo/furto e Renajud têm consulta avançada real,
+        sob demanda — veja o botão no card de Multas abaixo (custo por
+        consulta).
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -333,9 +365,53 @@ function DashboardContent() {
 
           <div className="card">
             <h3>
-              Multas <span className="badge neutral">Dados simulados</span>
+              Multas{" "}
+              <span className={`badge ${avancada ? "ok" : "neutral"}`}>
+                {avancada ? "Dados reais" : "Dados simulados"}
+              </span>
             </h3>
-            {result.multas.length === 0 ? (
+
+            {!avancada && (
+              <button
+                type="button"
+                className="secondary-button no-print"
+                onClick={runAvancada}
+                disabled={avancadaLoading}
+                style={{ marginBottom: 12 }}
+              >
+                {avancadaLoading
+                  ? "Consultando..."
+                  : "Consultar multas, roubo/furto e Renajud reais (R$ 3,00)"}
+              </button>
+            )}
+            {avancadaError && (
+              <p className="form-error" style={{ marginBottom: 12 }}>
+                {avancadaError}
+              </p>
+            )}
+
+            {avancada ? (
+              avancada.totalMultas === 0 ? (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Nenhuma multa em aberto para este veículo.
+                </p>
+              ) : (
+                <div className="grid-2">
+                  <div className="kv">
+                    <span className="label">Multas em aberto</span>
+                    <span className="value">{avancada.totalMultas}</span>
+                  </div>
+                  <div className="kv">
+                    <span className="label">Valor total</span>
+                    <span className="value">{currency.format(avancada.valorTotalMultas)}</span>
+                  </div>
+                  <div className="kv">
+                    <span className="label">Pontos na CNH</span>
+                    <span className="value">{avancada.pontosTotal}</span>
+                  </div>
+                </div>
+              )
+            ) : result.multas.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--muted)" }}>
                 Nenhuma multa encontrada para este veículo.
               </p>
@@ -352,6 +428,72 @@ function DashboardContent() {
               </div>
             )}
           </div>
+
+          {avancada && (
+            <div className="card">
+              <h3>
+                Roubo/furto <span className="badge ok">Dados reais</span>
+              </h3>
+              {avancada.rouboFurto ? (
+                <div className="grid-2">
+                  <div className="kv">
+                    <span className="label">Tipo</span>
+                    <span className="value">{avancada.rouboFurto.tipo || "—"}</span>
+                  </div>
+                  <div className="kv">
+                    <span className="label">Data</span>
+                    <span className="value">{avancada.rouboFurto.data || "—"}</span>
+                  </div>
+                  <div className="kv">
+                    <span className="label">Município</span>
+                    <span className="value">{avancada.rouboFurto.municipio || "—"}</span>
+                  </div>
+                  <div className="kv">
+                    <span className="label">Observação</span>
+                    <span className="value">{avancada.rouboFurto.descricao || "—"}</span>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Nenhuma ocorrência de roubo/furto para este veículo.
+                </p>
+              )}
+            </div>
+          )}
+
+          {avancada && (
+            <div className="card">
+              <h3>
+                Restrições judiciais (Renajud) <span className="badge ok">Dados reais</span>
+              </h3>
+              {avancada.possuiRestricaoJudicial ? (
+                <p style={{ fontSize: 13 }}>
+                  {avancada.totalRestricoesJudiciais} restrição(ões) judicial(is) ativa(s) no
+                  Renajud para este veículo.
+                </p>
+              ) : (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Nenhuma restrição judicial encontrada no Renajud.
+                </p>
+              )}
+              {(avancada.proprietarioNome || avancada.proprietarioCnpj) && (
+                <div className="grid-2" style={{ marginTop: 12 }}>
+                  {avancada.proprietarioNome && (
+                    <div className="kv">
+                      <span className="label">Proprietário</span>
+                      <span className="value">{avancada.proprietarioNome}</span>
+                    </div>
+                  )}
+                  {avancada.proprietarioCnpj && (
+                    <div className="kv">
+                      <span className="label">CNPJ do proprietário</span>
+                      <span className="value">{formatCnpj(avancada.proprietarioCnpj)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="card">
             <h3>

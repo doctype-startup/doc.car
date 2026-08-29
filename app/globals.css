@@ -691,6 +691,26 @@ button.wide {
   background: var(--brand-dark);
 }
 
+.secondary-button {
+  background: #fff;
+  color: var(--navy);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  border-color: var(--navy);
+}
+
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .inline-input {
   font-size: 14px;
   font-weight: 600;
