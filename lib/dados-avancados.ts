@@ -11,18 +11,46 @@ export type OcorrenciaRouboFurto = {
   descricao?: string;
 };
 
+export type Multa = {
+  codigo?: string;
+  descricao?: string;
+  quantidade: number;
+  amparoLegal?: string;
+  /** Só o papel de quem responde pela multa ("Proprietário" ou "Condutor")
+   * — o provedor não devolve nome de pessoa nesse campo, é uma categoria. */
+  infrator?: string;
+  gravidade?: string;
+  orgaoCompetente?: string;
+  valorUnitario: number;
+  valorTotal: number;
+  multiplicador: number;
+  pontosUnitario: number;
+  pontosTotal: number;
+  tipoMulta?: string;
+};
+
+export type RestricaoRenajud = {
+  tribunal?: string;
+  ramo?: string;
+  orgaoJudiciario?: string;
+  /** Número do processo judicial — registro público do processo, não dado
+   * pessoal de alguém. */
+  processo?: string;
+  restricoes: string[];
+};
+
 export type ConsultaAvancada = {
   placa: string;
   totalMultas: number;
   valorTotalMultas: number;
   pontosTotal: number;
   possuiMulta: boolean;
+  /** Itens individuais de multa. O provedor não devolve data nem local da
+   * infração por item — só o que está listado no tipo `Multa` existe. */
+  multas: Multa[];
   rouboFurto: OcorrenciaRouboFurto | null;
   possuiRestricaoJudicial: boolean;
-  /** Só a contagem — o provedor ainda não nos deu uma amostra com itens
-   * preenchidos, então não arriscamos exibir campos não verificados do
-   * Renajud (que podem incluir dados pessoais do processo). */
-  totalRestricoesJudiciais: number;
+  restricoesJudiciais: RestricaoRenajud[];
   /** Nome do proprietário atual — mesma exceção já aplicada em
    * lib/dados-veiculo.ts: o nome, isoladamente, não é o dado sensível aqui
    * (o despachante tem necessidade legítima de saber de quem é o veículo).
@@ -48,15 +76,55 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
     ? String(veiculo.niProprietario).replace(/\D/g, "")
     : "";
 
-  const ocorrenciaRaw = d?.ocorrencias_roubo_furto;
-  const rouboFurto: OcorrenciaRouboFurto | null = veiculo?.possuiOcorrenciaRouboFurto
-    ? {
-        tipo: ocorrenciaRaw?.tipo || undefined,
-        data: ocorrenciaRaw?.data || undefined,
-        municipio: ocorrenciaRaw?.municipio || undefined,
-        descricao: ocorrenciaRaw?.descricao || undefined,
-      }
-    : null;
+  // O provedor já devolveu isso ora como objeto único, ora como array
+  // (às vezes vazio) — normaliza pros dois formatos.
+  const ocorrenciaRaw = Array.isArray(d?.ocorrencias_roubo_furto)
+    ? d.ocorrencias_roubo_furto[0]
+    : d?.ocorrencias_roubo_furto;
+  const rouboFurto: OcorrenciaRouboFurto | null =
+    veiculo?.possuiOcorrenciaRouboFurto && ocorrenciaRaw
+      ? {
+          tipo: ocorrenciaRaw?.tipo || undefined,
+          data: ocorrenciaRaw?.data || undefined,
+          municipio: ocorrenciaRaw?.municipio || undefined,
+          descricao: ocorrenciaRaw?.descricao || undefined,
+        }
+      : null;
+
+  const multas: Multa[] = Array.isArray(d?.multas)
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      d.multas.map((m: any) => ({
+        codigo: m?.codigo || undefined,
+        descricao: m?.descricao || undefined,
+        quantidade: Number(m?.quantidade ?? 1),
+        amparoLegal: m?.amparo_legal || undefined,
+        infrator: m?.infrator || undefined,
+        gravidade: m?.gravidade || undefined,
+        orgaoCompetente: m?.orgao_competente || undefined,
+        valorUnitario: Number(m?.valor_unitario ?? 0),
+        valorTotal: Number(m?.valor_total ?? 0),
+        multiplicador: Number(m?.multiplicador ?? 1),
+        pontosUnitario: Number(m?.pontos_unitario ?? 0),
+        pontosTotal: Number(m?.pontos_total ?? 0),
+        tipoMulta: m?.tipo_multa || undefined,
+      }))
+    : [];
+
+  const restricoesJudiciais: RestricaoRenajud[] = Array.isArray(d?.renajud)
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      d.renajud.map((r: any) => ({
+        tribunal: r?.tribunal || undefined,
+        ramo: r?.ramo || undefined,
+        orgaoJudiciario: r?.orgaoJudiciario || undefined,
+        processo: r?.processo || undefined,
+        restricoes: Array.isArray(r?.restricoes)
+          ? r.restricoes
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .map((x: any) => x?.descricao)
+              .filter((x: unknown): x is string => Boolean(x))
+          : [],
+      }))
+    : [];
 
   return {
     placa: veiculo?.placa || d?.documento || "",
@@ -64,9 +132,10 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
     valorTotalMultas: Number(d?.valor_total ?? 0),
     pontosTotal: Number(d?.pontos_total ?? 0),
     possuiMulta: Boolean(veiculo?.possuiMulta),
+    multas,
     rouboFurto,
     possuiRestricaoJudicial: Boolean(veiculo?.possuiRestricaoJudicial),
-    totalRestricoesJudiciais: Array.isArray(d?.renajud) ? d.renajud.length : 0,
+    restricoesJudiciais,
     proprietarioNome: veiculo?.nomeProprietario || undefined,
     proprietarioCnpj: documento.length === 14 ? documento : undefined,
   };
