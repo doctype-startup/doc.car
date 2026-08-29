@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Guardiao from "@/components/Guardiao";
+import ClearHistoryButton from "./clear-history-button";
 
 export default async function HistoricoPage() {
   const supabase = await createClient();
@@ -29,6 +30,7 @@ export default async function HistoricoPage() {
           <h1>Histórico de consultas</h1>
           <p>Últimas placas consultadas por você.</p>
         </div>
+        {items.length > 0 && <ClearHistoryButton />}
       </div>
 
       {items.length === 0 ? (

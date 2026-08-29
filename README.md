@@ -18,7 +18,7 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `app/forgot-password` — recuperação de senha
 - `app/assinar` — página de assinatura (Stripe Checkout); usuário sem assinatura ativa é redirecionado para cá
 - `app/dashboard` — consulta de veículo por placa, com ficha técnica, FIPE, débitos e restrições (protegido: exige login + assinatura ativa)
-- `app/dashboard/historico` — histórico de placas consultadas, salvo no banco
+- `app/dashboard/historico` — histórico de placas consultadas, salvo no banco; tem botão "Limpar histórico" (apaga tudo, com confirmação)
 - `app/api/checkout` — cria a sessão de Stripe Checkout para o usuário logado
 - `app/api/stripe/webhook` — recebe eventos do Stripe e atualiza a assinatura no banco
 - `app/api/veiculo` — consulta dados reais de veículo por placa (exige login + assinatura ativa)
@@ -55,7 +55,7 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 ### 1. Supabase (login, banco de dados)
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Abra **SQL Editor** e rode o conteúdo de `supabase/migrations/0001_init.sql`.
+2. Abra **SQL Editor** e rode o conteúdo dos arquivos em `supabase/migrations/`, em ordem (`0001_init.sql`, `0002_...`, etc.) — cada um é rodado manualmente, não há pipeline automático de migração.
 3. Em **Authentication > Providers**, confirme que "Email" está habilitado. Em **Authentication > Emails**, decida se exige confirmação de e-mail (recomendado em produção).
 4. Em **Project Settings > API Keys**, copie:
    - a URL do projeto (visão geral do projeto, formato `https://xxxx.supabase.co`) → `NEXT_PUBLIC_SUPABASE_URL`
