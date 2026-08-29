@@ -74,7 +74,7 @@ export type VeiculoReal = {
   codigoSegurancaCrv?: string;
   /** Situação do chassi (código do provedor, ex: "N" = normal). */
   situacaoChassi?: string;
-  fipe: { descricao?: string; valor: number } | null;
+  fipe: { codigo?: string; descricao?: string; anoModelo?: number; valor: number } | null;
   restricoes: string[];
   indicadores: {
     rouboFurto: boolean;
@@ -163,7 +163,12 @@ function sanitizeVeiculo(raw: any): VeiculoReal {
     situacaoChassi: v.situacao_chassi || undefined,
     fipe:
       fipeValor !== undefined
-        ? { descricao: v.fipe?.descricao || undefined, valor: fipeValor }
+        ? {
+            codigo: v.fipe?.codigo || undefined,
+            descricao: v.fipe?.descricao || undefined,
+            anoModelo: v.fipe?.ano_modelo ? Number(v.fipe.ano_modelo) : undefined,
+            valor: fipeValor,
+          }
         : null,
     restricoes,
     indicadores: {

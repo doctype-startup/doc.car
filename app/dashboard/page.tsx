@@ -429,6 +429,24 @@ function DashboardContent() {
                       : "Não disponível"}
                 </span>
               </div>
+              {veiculoReal?.fipe?.descricao && (
+                <div className="kv">
+                  <span className="label">Descrição FIPE</span>
+                  <span className="value">{veiculoReal.fipe.descricao}</span>
+                </div>
+              )}
+              {veiculoReal?.fipe?.codigo && (
+                <div className="kv">
+                  <span className="label">Código FIPE</span>
+                  <span className="value">{veiculoReal.fipe.codigo}</span>
+                </div>
+              )}
+              {veiculoReal?.fipe?.anoModelo && (
+                <div className="kv">
+                  <span className="label">Ano-modelo de referência FIPE</span>
+                  <span className="value">{veiculoReal.fipe.anoModelo}</span>
+                </div>
+              )}
               <div className="kv">
                 <span className="label">CPF/CNPJ do cliente (informado por você)</span>
                 <input
