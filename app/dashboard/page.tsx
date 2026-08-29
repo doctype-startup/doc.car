@@ -8,7 +8,7 @@ import {
   normalizePlaca,
   VehicleQuery,
 } from "@/lib/vehicle";
-import { addHistory } from "@/lib/history";
+import { addHistory, countHistoryHoje } from "@/lib/history";
 import { VeiculoReal, formatCnpj } from "@/lib/dados-veiculo";
 import { ConsultaAvancada } from "@/lib/dados-avancados";
 import Guardiao from "@/components/Guardiao";
@@ -52,8 +52,10 @@ function DashboardContent() {
   const [avancadaLoading, setAvancadaLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [consultasHoje, setConsultasHoje] = useState<number | null>(null);
 
   useEffect(() => {
+    void countHistoryHoje().then(setConsultasHoje);
     return () => {
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
     };
@@ -81,6 +83,7 @@ function DashboardContent() {
     setResult(data);
     setChamadoId(gerarChamadoId());
     void addHistory(data.placa);
+    setConsultasHoje((prev) => (prev ?? 0) + 1);
 
     try {
       const response = await fetch(`/api/veiculo?placa=${encodeURIComponent(data.placa)}`);
@@ -148,6 +151,22 @@ function DashboardContent() {
 
   return (
     <>
+      {consultasHoje !== null && (
+        <div className="no-print" style={{ marginBottom: 20 }}>
+          <Guardiao
+            pose="aguardando"
+            size={56}
+            mensagem={
+              consultasHoje === 0
+                ? "Você ainda não fez nenhuma consulta hoje."
+                : consultasHoje === 1
+                  ? "Você já fez 1 consulta hoje."
+                  : `Você já fez ${consultasHoje} consultas hoje.`
+            }
+          />
+        </div>
+      )}
+
       <div className="search-card">
         <h2>Consultar veículo por placa</h2>
         <p className="hint">Formato antigo (ABC1D34) ou Mercosul (ABC1D23).</p>
