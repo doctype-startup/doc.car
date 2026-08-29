@@ -22,8 +22,10 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `app/api/checkout` — cria a sessão de Stripe Checkout para o usuário logado
 - `app/api/stripe/webhook` — recebe eventos do Stripe e atualiza a assinatura no banco
 - `app/api/veiculo` — consulta dados reais de veículo por placa (exige login + assinatura ativa)
-- `lib/vehicle.ts` — camada de dados **mock** (débitos e multas — ainda simulados, exibidos lado a lado com o dado real)
+- `app/api/consulta-avancada` — consulta avançada real de multas/roubo-furto/Renajud, sob demanda (exige login + assinatura ativa)
+- `lib/vehicle.ts` — camada de dados **mock** (débitos — ainda simulado, exibido junto com o dado real)
 - `lib/dados-veiculo.ts` — client do provedor de dados veiculares ativo (veja "Dados reais de veículo" abaixo)
+- `lib/dados-avancados.ts` — client do provedor de consulta avançada (veja "Consulta avançada" abaixo)
 - `lib/infosimples.ts` — client da Infosimples, hoje **não usado** (endpoint de veículo não autorizado na conta atual); mantido caso a consulta de multas ANTT/SIFAMA seja retomada
 - `lib/supabase/` — clients Supabase (browser, server, admin/service-role) e o proxy de sessão
 - `lib/stripe.ts` — client Stripe
@@ -91,12 +93,19 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 1. Copie o token fornecido pelo provedor da consulta por placa → `PLACA_API_TOKEN`.
 2. `lib/dados-veiculo.ts` chama esse provedor e devolve ficha do veículo (placa, chassi, Renavam, marca/modelo, ano, cor, combustível, FIPE, restrições, indicadores de roubo/furto/multa) e o nome do proprietário atual.
 3. **Importante — dados pessoais**: o provedor retorna, junto da ficha do veículo, um dossiê pessoal completo do proprietário (CPF, nome da mãe, data de nascimento, endereço, telefone, e-mail e dados de birô de crédito). `sanitizeVeiculo()` em `lib/dados-veiculo.ts` descarta tudo isso — só o **nome** do proprietário atual chega a sair da função. Isso é proposital: um despachante tem necessidade legítima de saber quem é o dono do veículo, mas não de acessar o dossiê pessoal completo dele (LGPD — minimização de dados). **Não amplie esse retorno sem revisar as implicações de LGPD antes.**
-4. Débitos e multas **continuam simulados** — não fazem parte do retorno desse provedor.
+4. Débitos (IPVA, licenciamento) **continuam simulados** — não fazem parte do retorno de nenhum dos dois provedores.
 5. `lib/infosimples.ts` fica sem uso por enquanto (endpoint de veículo não autorizado na conta atual) — mantido só caso a consulta de multas ANTT/SIFAMA seja retomada.
 
-### 4. Configurar na Vercel
+### 4. Consulta avançada (multas, roubo/furto, Renajud)
 
-Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 7 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
+1. Copie o token de um segundo provedor, cobrado por consulta (à parte do provedor acima) → `PLACA_DEBITOS_API_TOKEN`.
+2. `lib/dados-avancados.ts` chama esse provedor sob demanda — só quando o despachante clica no botão "Consultar multas, roubo/furto e Renajud reais" na ficha, nunca automaticamente numa consulta normal, já que cada chamada tem custo. Devolve: total de multas em aberto, valor total, pontos, ocorrência de roubo/furto (tipo, data, município) e se há restrição judicial ativa no Renajud.
+3. **Dados pessoais**: o provedor devolve, junto da ficha, nome e documento (CPF/CNPJ) do proprietário. `sanitizeAvancada()` em `lib/dados-avancados.ts` descarta o nome e o CPF por completo — segue a mesma regra do provedor principal (item 3 acima). Só o **CNPJ** sai da função, e só quando o documento tem 14 dígitos (pessoa jurídica); documento de 11 dígitos (CPF de pessoa física) nunca é exposto.
+4. A lista de multas e o array do Renajud vêm vazios nos testes feitos até agora — por isso a ficha mostra só totais/contagens (não itens individuais). Antes de exibir os itens em si, é preciso confirmar com uma amostra real quais campos cada item traz, pra garantir que nenhum deles carregue dado pessoal (ex: nome do infrator).
+
+### 5. Configurar na Vercel
+
+Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 8 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
 
 Sem essas variáveis configuradas, o app sobe normalmente mas login/cadastro, assinatura e consulta real mostram erro — é esperado até a configuração ser concluída.
 
