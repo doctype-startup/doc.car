@@ -16,8 +16,8 @@ Abra [http://localhost:3000](http://localhost:3000).
 
 - `app/login` — login e cadastro de despachante (Supabase Auth)
 - `app/forgot-password` — recuperação de senha
-- `app/assinar` — página de assinatura (Stripe Checkout); usuário sem assinatura ativa é redirecionado para cá
-- `app/dashboard` — consulta de veículo por placa, com ficha técnica, FIPE, débitos e restrições (protegido: exige login + assinatura ativa)
+- `app/assinar` — página com os 3 planos (Essencial/Profissional/Escritório) + "Fale com a gente" pra alto volume; usuário sem assinatura ativa é redirecionado pra cá
+- `app/dashboard` — consulta de veículo por placa, com ficha técnica, FIPE, débitos e restrições (protegido: exige login + assinatura ativa); topbar mostra o saldo de consultas avançadas do período
 - `app/dashboard/historico` — histórico de placas consultadas, salvo no banco; tem botão "Limpar histórico" (apaga tudo, com confirmação)
 - `app/api/checkout` — cria a sessão de Stripe Checkout para o usuário logado
 - `app/api/stripe/webhook` — recebe eventos do Stripe e atualiza a assinatura no banco
@@ -26,6 +26,8 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `lib/vehicle.ts` — camada de dados **mock** (débitos — ainda simulado, exibido junto com o dado real)
 - `lib/dados-veiculo.ts` — client do provedor de dados veiculares ativo (veja "Dados reais de veículo" abaixo)
 - `lib/dados-avancados.ts` — client do provedor de consulta avançada (veja "Consulta avançada" abaixo)
+- `lib/plans.ts` — os 3 planos (nome, cota mensal de consultas avançadas, preço) e o preço da consulta avulsa fora da cota
+- `lib/uso-avancada.ts` — conta o uso do período atual e registra cada consulta avançada realizada (tabela `avancada_usage`)
 - `lib/infosimples.ts` — client da Infosimples, hoje **não usado** (endpoint de veículo não autorizado na conta atual); mantido caso a consulta de multas ANTT/SIFAMA seja retomada
 - `lib/supabase/` — clients Supabase (browser, server, admin/service-role) e o proxy de sessão
 - `lib/stripe.ts` — client Stripe
@@ -82,11 +84,13 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
 ### 2. Stripe (cobrança)
 
-1. Crie um produto e um preço recorrente (ex: mensal) em **Product catalog**. Copie o `price_...` → `STRIPE_PRICE_ID`.
+1. Crie um produto e **três preços recorrentes mensais** em **Product catalog** — um por plano (Essencial, Profissional, Escritório; valores e cotas em `lib/plans.ts`). Copie cada `price_...` → `STRIPE_PRICE_ESSENCIAL` / `STRIPE_PRICE_PROFISSIONAL` / `STRIPE_PRICE_ESCRITORIO`.
 2. Em **Developers > API keys**, copie a `Secret key` → `STRIPE_SECRET_KEY`.
 3. Em **Developers > Webhooks**, crie um novo destino de evento (não reaproveite um endpoint de outro projeto) apontando para `https://SEU-DOMINIO/api/stripe/webhook`, escutando apenas: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. Copie o `Signing secret` → `STRIPE_WEBHOOK_SECRET`.
 
    Se sua conta usa **Sandboxes** (contas Stripe novas), confirme que o produto, a chave e o webhook estão todos dentro do mesmo sandbox — cada sandbox tem chaves e webhooks isolados.
+
+4. **Cobrança avulsa do excedente**: quando o despachante estoura a cota de consultas avançadas do plano no período, `app/api/consulta-avancada` cria um item de fatura avulso (`stripe.invoiceItems.create`) no valor de `PRECO_AVULSO_CENTAVOS` (`lib/plans.ts`) — o Stripe inclui isso automaticamente na próxima fatura do cliente, sem precisar de nenhum job agendado.
 
 ### 3. Dados reais de veículo
 
@@ -106,7 +110,7 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
 ### 5. Configurar na Vercel
 
-Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 8 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
+Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 11 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
 
 Sem essas variáveis configuradas, o app sobe normalmente mas login/cadastro, assinatura e consulta real mostram erro — é esperado até a configuração ser concluída.
 
