@@ -64,6 +64,12 @@ export type VeiculoReal = {
    * só quando esse documento é de pessoa jurídica — mesma regra do CNPJ do
    * proprietário acima. */
   cnpjFaturado?: string;
+  /** Número sequencial do documento (CRV/CRLV) — identifica o documento em
+   * si, não uma pessoa; usado junto com o código de segurança pra conferir
+   * a autenticidade do documento físico. */
+  numeroCrv?: string;
+  /** Código de segurança do CRV/CRLV — mesma finalidade do número acima. */
+  codigoSegurancaCrv?: string;
   fipe: { descricao?: string; valor: number } | null;
   restricoes: string[];
   indicadores: {
@@ -148,6 +154,8 @@ function sanitizeVeiculo(raw: any): VeiculoReal {
       v.doc_faturado?.tipo?.descricao === "Juridica"
         ? v.doc_faturado?.documento || undefined
         : undefined,
+    numeroCrv: v.indicadores?.sequencial_documento || undefined,
+    codigoSegurancaCrv: v.indicadores?.codigo_seguranca_crv || undefined,
     fipe:
       fipeValor !== undefined
         ? { descricao: v.fipe?.descricao || undefined, valor: fipeValor }

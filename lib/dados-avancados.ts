@@ -63,6 +63,11 @@ export type ConsultaAvancada = {
    * VeiculoReal (provedores diferentes); prefira o de VeiculoReal quando
    * os dois estiverem disponíveis. */
   anoUltimoLicenciamento?: string;
+  /** Número sequencial do documento (CRV/CRLV) — identifica o documento em
+   * si, não uma pessoa. */
+  numeroCrv?: string;
+  /** Código de segurança do CRV/CRLV — mesma finalidade do número acima. */
+  codigoSegurancaCrv?: string;
   /** Nome do proprietário atual — mesma exceção já aplicada em
    * lib/dados-veiculo.ts: o nome, isoladamente, não é o dado sensível aqui
    * (o despachante tem necessidade legítima de saber de quem é o veículo).
@@ -155,6 +160,8 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
     anoUltimoLicenciamento: veiculo?.anoUltimoLicenciamento
       ? String(veiculo.anoUltimoLicenciamento)
       : undefined,
+    numeroCrv: veiculo?.sequencialDocumento || undefined,
+    codigoSegurancaCrv: veiculo?.codigoSegurancaCrv || undefined,
     proprietarioNome: veiculo?.nomeProprietario || undefined,
     proprietarioCnpj: documento.length === 14 ? documento : undefined,
   };
