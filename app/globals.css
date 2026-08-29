@@ -693,6 +693,9 @@ button.wide {
 }
 
 .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
   color: var(--navy);
   border: 1px solid var(--border);
@@ -700,6 +703,7 @@ button.wide {
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -929,4 +933,118 @@ button.wide {
   .guardiao-toast {
     display: none !important;
   }
+}
+
+/* ---------- Página de planos (/assinar) ---------- */
+.assinar-page {
+  min-height: 100vh;
+  background: radial-gradient(
+    circle at 15% 20%,
+    var(--doctype-navy-light) 0%,
+    var(--navy) 45%,
+    var(--doctype-ink) 100%
+  );
+  padding: 56px 24px;
+}
+
+.assinar-header {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  text-align: center;
+  color: #f4f5f7;
+}
+
+.assinar-header .brand {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.assinar-header .brand span {
+  color: var(--brand);
+}
+
+.assinar-header h2 {
+  margin-top: 18px;
+  font-size: 20px;
+}
+
+.assinar-header p {
+  margin-top: 8px;
+  color: rgba(244, 245, 247, 0.75);
+  font-size: 13px;
+}
+
+.planos-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 960px) {
+  .planos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.plano-card {
+  background: var(--bg-panel);
+  border-radius: var(--radius);
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(6, 19, 63, 0.25);
+}
+
+.plano-card.destaque {
+  border: 2px solid var(--brand);
+  transform: translateY(-8px);
+}
+
+.plano-card h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--doctype-navy);
+}
+
+.plano-preco {
+  margin: 14px 0 4px;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.plano-preco span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.plano-cota {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.plano-detalhe {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.contato-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.contato-card p {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 10px 0 18px;
 }

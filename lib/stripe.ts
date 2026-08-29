@@ -1,8 +1,10 @@
 import Stripe from "stripe";
+import { PLANOS } from "@/lib/plans";
 
 export const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
-export const stripePriceId = process.env.STRIPE_PRICE_ID || "";
-export const isStripeConfigured = Boolean(stripeSecretKey && stripePriceId);
+export const isStripeConfigured = Boolean(
+  stripeSecretKey && PLANOS.every((plano) => plano.priceId)
+);
 
 export function getStripe() {
   if (!stripeSecretKey) {

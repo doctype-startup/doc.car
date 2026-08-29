@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, isStripeConfigured, stripePriceId } from "@/lib/stripe";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { getPlanoPorId } from "@/lib/plans";
 
 export async function POST(request: NextRequest) {
   if (!isStripeConfigured) {
+    return NextResponse.redirect(new URL("/assinar?erro=1", request.url));
+  }
+
+  const formData = await request.formData();
+  const plano = getPlanoPorId(String(formData.get("plano") || ""));
+
+  if (!plano) {
     return NextResponse.redirect(new URL("/assinar?erro=1", request.url));
   }
 
@@ -29,7 +37,7 @@ export async function POST(request: NextRequest) {
     mode: "subscription",
     customer: existing?.stripe_customer_id || undefined,
     customer_email: existing?.stripe_customer_id ? undefined : user.email,
-    line_items: [{ price: stripePriceId, quantity: 1 }],
+    line_items: [{ price: plano.priceId, quantity: 1 }],
     success_url: `${origin}/dashboard`,
     cancel_url: `${origin}/assinar`,
     client_reference_id: user.id,
