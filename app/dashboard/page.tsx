@@ -409,20 +409,51 @@ function DashboardContent() {
               avancada.totalMultas === 0 ? (
                 <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
               ) : (
-                <div className="grid-2">
-                  <div className="kv">
-                    <span className="label">Multas em aberto</span>
-                    <span className="value">{avancada.totalMultas}</span>
+                <>
+                  {avancada.multas.map((multa, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        borderTop: idx === 0 ? "none" : "1px solid var(--border)",
+                        padding: "10px 0",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>
+                          {multa.descricao || "Infração"}
+                        </span>
+                        <span className="value" style={{ whiteSpace: "nowrap" }}>
+                          {currency.format(multa.valorTotal)}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                        {[
+                          multa.tipoMulta,
+                          multa.infrator && `Responsável: ${multa.infrator}`,
+                          multa.orgaoCompetente && `Órgão: ${multa.orgaoCompetente}`,
+                          multa.amparoLegal && `Art. ${multa.amparoLegal}`,
+                          `${multa.pontosTotal} pontos`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                  ))}
+                  <div className="grid-2" style={{ marginTop: 12 }}>
+                    <div className="kv">
+                      <span className="label">Total de multas</span>
+                      <span className="value">{avancada.totalMultas}</span>
+                    </div>
+                    <div className="kv">
+                      <span className="label">Valor total</span>
+                      <span className="value">{currency.format(avancada.valorTotalMultas)}</span>
+                    </div>
+                    <div className="kv">
+                      <span className="label">Pontos na CNH</span>
+                      <span className="value">{avancada.pontosTotal}</span>
+                    </div>
                   </div>
-                  <div className="kv">
-                    <span className="label">Valor total</span>
-                    <span className="value">{currency.format(avancada.valorTotalMultas)}</span>
-                  </div>
-                  <div className="kv">
-                    <span className="label">Pontos na CNH</span>
-                    <span className="value">{avancada.pontosTotal}</span>
-                  </div>
-                </div>
+                </>
               )
             ) : result.multas.length === 0 ? (
               <p style={{ fontSize: 13, color: "var(--muted)" }}>
@@ -478,10 +509,28 @@ function DashboardContent() {
                 Restrições judiciais (Renajud) <span className="badge ok">Dados reais</span>
               </h3>
               {avancada.possuiRestricaoJudicial ? (
-                <p style={{ fontSize: 13 }}>
-                  {avancada.totalRestricoesJudiciais} restrição(ões) judicial(is) ativa(s) no
-                  Renajud para este veículo.
-                </p>
+                avancada.restricoesJudiciais.map((restricao, idx) => (
+                  <div key={idx} style={{ marginBottom: 10 }}>
+                    {restricao.restricoes.length > 0 ? (
+                      restricao.restricoes.map((desc) => (
+                        <span
+                          key={desc}
+                          className="badge warn"
+                          style={{ marginRight: 8, marginBottom: 8 }}
+                        >
+                          {desc}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="badge warn">Restrição judicial</span>
+                    )}
+                    <p style={{ fontSize: 13, marginTop: 6, color: "var(--muted)" }}>
+                      {[restricao.tribunal, restricao.processo && `Processo ${restricao.processo}`]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
+                ))
               ) : (
                 <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
               )}
