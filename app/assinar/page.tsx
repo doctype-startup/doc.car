@@ -40,7 +40,7 @@ export default async function AssinarPage() {
         <div className="brand">
           DOC<span>.CAR</span>
         </div>
-        <Guardiao pose="aprovacao" size={72} className="assinar-guardiao" />
+        <Guardiao pose="aprovacao" size={140} className="assinar-guardiao" />
         <h2>Escolha seu plano</h2>
         <p>
           {subscription?.status === "past_due"
