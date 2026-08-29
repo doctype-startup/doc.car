@@ -411,6 +411,12 @@ function DashboardContent() {
                   <span className="value">{veiculoReal.codigoSegurancaCrv}</span>
                 </div>
               )}
+              {veiculoReal?.situacaoChassi && (
+                <div className="kv">
+                  <span className="label">Situação do chassi</span>
+                  <span className="value">{veiculoReal.situacaoChassi}</span>
+                </div>
+              )}
               <div className="kv">
                 <span className="label">Valor FIPE</span>
                 <span className="value">
@@ -423,6 +429,24 @@ function DashboardContent() {
                       : "Não disponível"}
                 </span>
               </div>
+              {veiculoReal?.fipe?.descricao && (
+                <div className="kv">
+                  <span className="label">Descrição FIPE</span>
+                  <span className="value">{veiculoReal.fipe.descricao}</span>
+                </div>
+              )}
+              {veiculoReal?.fipe?.codigo && (
+                <div className="kv">
+                  <span className="label">Código FIPE</span>
+                  <span className="value">{veiculoReal.fipe.codigo}</span>
+                </div>
+              )}
+              {veiculoReal?.fipe?.anoModelo && (
+                <div className="kv">
+                  <span className="label">Ano-modelo de referência FIPE</span>
+                  <span className="value">{veiculoReal.fipe.anoModelo}</span>
+                </div>
+              )}
               <div className="kv">
                 <span className="label">CPF/CNPJ do cliente (informado por você)</span>
                 <input
@@ -631,6 +655,54 @@ function DashboardContent() {
                     <span className="value">{avancada.codigoSegurancaCrv}</span>
                   </div>
                 )}
+                {avancada.identificacaoUnica && (
+                  <div className="kv">
+                    <span className="label">Identificação única</span>
+                    <span className="value">{avancada.identificacaoUnica}</span>
+                  </div>
+                )}
+                {avancada.situacaoChassi && (
+                  <div className="kv">
+                    <span className="label">Situação do chassi</span>
+                    <span className="value">{avancada.situacaoChassi}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {avancada &&
+              (avancada.foiEmplacado !== undefined ||
+                avancada.ostentaPiv !== undefined ||
+                avancada.placaFormatoAntigo !== undefined ||
+                avancada.placaInutilizada !== undefined) && (
+                <div style={{ marginBottom: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {avancada.foiEmplacado !== undefined && (
+                    <span className={`badge ${avancada.foiEmplacado ? "ok" : "neutral"}`}>
+                      {avancada.foiEmplacado ? "Emplacado" : "Não emplacado"}
+                    </span>
+                  )}
+                  {avancada.ostentaPiv !== undefined && (
+                    <span className={`badge ${avancada.ostentaPiv ? "ok" : "neutral"}`}>
+                      {avancada.ostentaPiv ? "Ostenta PIV" : "Sem PIV"}
+                    </span>
+                  )}
+                  {avancada.placaFormatoAntigo && (
+                    <span className="badge neutral">Placa formato pré-Mercosul</span>
+                  )}
+                  {avancada.placaInutilizada && (
+                    <span className="badge warn">Placa inutilizada</span>
+                  )}
+                </div>
+              )}
+
+            {avancada && avancada.observacoes.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <span className="label">Observações do documento</span>
+                {avancada.observacoes.map((obs, idx) => (
+                  <p key={idx} style={{ fontSize: 13, marginTop: 4 }}>
+                    {obs}
+                  </p>
+                ))}
               </div>
             )}
 
