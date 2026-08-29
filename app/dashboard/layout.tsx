@@ -23,7 +23,7 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, email")
+    .select("name, email, is_admin")
     .eq("id", user.id)
     .single();
 
@@ -61,7 +61,7 @@ export default async function DashboardLayout({
             DOC<span>.CAR</span>
           </div>
         </div>
-        <NavTabs />
+        <NavTabs isAdmin={Boolean(profile?.is_admin)} />
         <div className="topbar-right">
           {plano && (
             <span

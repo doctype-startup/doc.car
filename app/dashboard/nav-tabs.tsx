@@ -8,7 +8,7 @@ const TABS = [
   { href: "/dashboard/historico", label: "Histórico" },
 ];
 
-export default function NavTabs() {
+export default function NavTabs({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -22,6 +22,7 @@ export default function NavTabs() {
           {tab.label}
         </Link>
       ))}
+      {isAdmin && <Link href="/admin">Admin</Link>}
     </nav>
   );
 }
