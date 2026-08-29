@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isStripeConfigured } from "@/lib/stripe";
-import { PLANOS, PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
+import { PLANOS, PRECO_AVULSO_CENTAVOS, getPlanoPorId } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -14,14 +14,21 @@ const WHATSAPP_MENSAGEM = encodeURIComponent(
   "Olá! Quero saber mais sobre um plano personalizado no DOC.CAR."
 );
 
-export default async function AssinarPage() {
+export default async function AssinarPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ plano?: string }>;
+}) {
+  const { plano: planoParam } = await searchParams;
+  const planoEscolhido = getPlanoPorId(planoParam);
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect(planoParam ? `/login?plano=${planoParam}` : "/login");
   }
 
   const { data: subscription } = await supabase
@@ -59,12 +66,21 @@ export default async function AssinarPage() {
       )}
 
       <div className="planos-grid">
-        {PLANOS.map((plano, index) => (
+        {PLANOS.map((plano, index) => {
+          const isDestaque = planoEscolhido
+            ? plano.id === planoEscolhido.id
+            : index === 1;
+          return (
           <div
             key={plano.id}
-            className={`plano-card${index === 1 ? " destaque" : ""}`}
+            className={`plano-card${isDestaque ? " destaque" : ""}`}
           >
             <h3>{plano.nome}</h3>
+            {isDestaque && planoEscolhido && (
+              <span className="badge ok" style={{ marginBottom: 8 }}>
+                Selecionado no cadastro
+              </span>
+            )}
             <div className="plano-preco">
               {currency.format(plano.precoCentavos / 100)}
               <span> /mês</span>
@@ -89,7 +105,8 @@ export default async function AssinarPage() {
               {currency.format(PRECO_AVULSO_CENTAVOS / 100)} cada.
             </p>
           </div>
-        ))}
+          );
+        })}
 
         <div className="plano-card contato-card">
           <h3>Alto volume?</h3>
