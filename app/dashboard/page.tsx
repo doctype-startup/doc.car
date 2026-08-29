@@ -392,9 +392,7 @@ function DashboardContent() {
 
             {avancada ? (
               avancada.totalMultas === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nenhuma multa em aberto para este veículo.
-                </p>
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
               ) : (
                 <div className="grid-2">
                   <div className="kv">
@@ -454,9 +452,7 @@ function DashboardContent() {
                   </div>
                 </div>
               ) : (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nenhuma ocorrência de roubo/furto para este veículo.
-                </p>
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
               )}
             </div>
           )}
@@ -472,9 +468,7 @@ function DashboardContent() {
                   Renajud para este veículo.
                 </p>
               ) : (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nenhuma restrição judicial encontrada no Renajud.
-                </p>
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
               )}
               {(avancada.proprietarioNome || avancada.proprietarioCnpj) && (
                 <div className="grid-2" style={{ marginTop: 12 }}>
@@ -504,9 +498,7 @@ function DashboardContent() {
             </h3>
             {veiculoReal ? (
               veiculoReal.restricoes.length === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nenhuma restrição encontrada para este veículo.
-                </p>
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
               ) : (
                 veiculoReal.restricoes.map((restricao) => (
                   <span key={restricao} className="badge warn" style={{ marginRight: 8, marginBottom: 8 }}>
