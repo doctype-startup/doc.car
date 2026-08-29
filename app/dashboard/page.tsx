@@ -233,26 +233,10 @@ function DashboardContent() {
         </div>
       )}
 
-      {(veiculoReal !== null || realError) && (
-        <details className="debug-details">
-          <summary>Retorno da consulta real (modo depuração)</summary>
-          {realError ? (
-            <p style={{ fontSize: 13, color: "var(--danger)", marginTop: 12 }}>{realError}</p>
-          ) : (
-            <pre>{JSON.stringify(veiculoReal, null, 2)}</pre>
-          )}
-        </details>
-      )}
-
-      {(avancada !== null || avancadaError) && (
-        <details className="debug-details">
-          <summary>Retorno da consulta avançada (modo depuração)</summary>
-          {avancadaError ? (
-            <p style={{ fontSize: 13, color: "var(--danger)", marginTop: 12 }}>{avancadaError}</p>
-          ) : (
-            <pre>{JSON.stringify(avancada, null, 2)}</pre>
-          )}
-        </details>
+      {realError && (
+        <p className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>
+          {realError}
+        </p>
       )}
 
       {result && (

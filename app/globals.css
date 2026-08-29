@@ -568,33 +568,6 @@ button.wide {
   margin-bottom: 18px;
 }
 
-.debug-details {
-  margin-bottom: 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: #fff;
-  padding: 14px 22px;
-}
-
-.debug-details summary {
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--muted);
-}
-
-.debug-details pre {
-  margin-top: 12px;
-  font-size: 11px;
-  white-space: pre-wrap;
-  word-break: break-all;
-  max-height: 300px;
-  overflow: auto;
-  background: #f5f6f8;
-  padding: 12px;
-  border-radius: 8px;
-}
-
 .card {
   background: #fff;
   border: 1px solid var(--border);
@@ -820,8 +793,7 @@ button.wide {
   .info-banner,
   .form-error,
   .loading-state,
-  .empty-state,
-  .debug-details {
+  .empty-state {
     display: none !important;
   }
 
