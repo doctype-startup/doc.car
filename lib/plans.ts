@@ -12,7 +12,7 @@ export type Plano = {
 
 /** Preço da consulta avançada avulsa, cobrada quando o usuário estoura a
  * cota do plano no período. Em centavos. */
-export const PRECO_AVULSO_CENTAVOS = 1680;
+export const PRECO_AVULSO_CENTAVOS = 1690;
 
 /** Preço da consulta simples avulsa, cobrada quando o usuário estoura a
  * cota do plano no período e não tem crédito de recarga disponível. Em

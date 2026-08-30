@@ -843,6 +843,15 @@ button.wide {
   cursor: default;
 }
 
+.secondary-button.destaque {
+  border: 2px solid var(--brand);
+  color: var(--brand-dark);
+}
+
+.secondary-button.destaque:hover {
+  border-color: var(--brand-dark);
+}
+
 .danger-button {
   display: inline-flex;
   align-items: center;
