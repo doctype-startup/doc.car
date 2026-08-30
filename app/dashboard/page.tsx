@@ -246,13 +246,22 @@ function DashboardContent() {
         <p className="hint">Formato antigo (ABC1D34) ou Mercosul (ABC1D23).</p>
 
         <form className="search-bar" onSubmit={handleSearch}>
-          <input
-            type="text"
-            placeholder="ABC1D23"
-            maxLength={7}
-            value={placa}
-            onChange={(e) => setPlaca(normalizePlaca(e.target.value))}
-          />
+          <div className={`placa-input${error ? " invalid" : ""}`}>
+            <div className="placa-input-top">
+              <span className="placa-input-mercosul">MERCOSUL</span>
+              <span className="placa-input-brasil">BRASIL</span>
+              <span className="placa-input-flag" aria-hidden="true">
+                🇧🇷
+              </span>
+            </div>
+            <input
+              type="text"
+              placeholder="ABC1D23"
+              maxLength={7}
+              value={placa}
+              onChange={(e) => setPlaca(normalizePlaca(e.target.value))}
+            />
+          </div>
           <button className="primary" type="submit" disabled={loading}>
             {loading ? "Consultando..." : "Consultar"}
           </button>

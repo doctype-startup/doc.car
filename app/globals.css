@@ -508,26 +508,70 @@ button.wide {
 
 .search-bar {
   display: flex;
+  align-items: center;
   gap: 10px;
   margin-top: 16px;
 }
 
-.search-bar input {
-  flex: 1;
-  min-width: 0;
-  max-width: 320px;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+.placa-input {
+  width: 230px;
+  flex-shrink: 0;
+  border: 3px solid #0a0a0a;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
 }
 
-.search-bar input:focus {
+.placa-input.invalid {
+  border-color: var(--danger);
+}
+
+.placa-input-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #0033a0;
+  padding: 3px 6px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #fff;
+}
+
+.placa-input-mercosul {
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 3px;
+  padding: 0 3px;
+  font-size: 7px;
+}
+
+.placa-input-flag {
+  font-size: 11px;
+  line-height: 1;
+  margin-left: auto;
+}
+
+.placa-input input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 8px 6px 10px;
+  color: #0a0a0a;
+  font-family: var(--font-heading);
+}
+
+.placa-input input:focus {
   outline: none;
-  border-color: var(--brand);
+}
+
+.placa-input input::placeholder {
+  color: #c7c7c7;
 }
 
 .search-examples {
