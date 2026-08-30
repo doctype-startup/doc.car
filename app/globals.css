@@ -956,6 +956,10 @@ button.wide {
   background: var(--navy-light);
 }
 
+.guardiao-helper-toggle.has-alert {
+  box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35), 0 0 0 3px var(--danger);
+}
+
 .guardiao-helper-toggle .guardiao {
   width: 44px;
   height: 44px;

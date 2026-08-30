@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./sign-out-button";
 import NavTabs from "./nav-tabs";
 import GuardiaoHelper from "@/components/GuardiaoHelper";
+import { GuardiaoProvider } from "@/components/guardiao-context";
 import { getPlanoPorPriceId } from "@/lib/plans";
 import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
 
@@ -54,32 +55,34 @@ export default async function DashboardLayout({
     : 0;
 
   return (
-    <div className="app-shell">
-      <header className="app-topbar">
-        <div className="topbar-left">
-          <div className="brand">
-            DOC<span>.CAR</span>
+    <GuardiaoProvider>
+      <div className="app-shell">
+        <header className="app-topbar">
+          <div className="topbar-left">
+            <div className="brand">
+              DOC<span>.CAR</span>
+            </div>
           </div>
-        </div>
-        <NavTabs isAdmin={Boolean(profile?.is_admin)} />
-        <div className="topbar-right">
-          {plano && (
-            <span
-              className={`badge ${usoNoPeriodo >= plano.cota ? "warn" : "neutral"}`}
-              title="Consultas avançadas usadas neste período"
-            >
-              Saldo: {usoNoPeriodo}/{plano.cota}
+          <NavTabs isAdmin={Boolean(profile?.is_admin)} />
+          <div className="topbar-right">
+            {plano && (
+              <span
+                className={`badge ${usoNoPeriodo >= plano.cota ? "warn" : "neutral"}`}
+                title="Consultas avançadas usadas neste período"
+              >
+                Saldo: {usoNoPeriodo}/{plano.cota}
+              </span>
+            )}
+            <span className="topbar-user">
+              {profile?.name ?? profile?.email ?? user.email} · Responsável
             </span>
-          )}
-          <span className="topbar-user">
-            {profile?.name ?? profile?.email ?? user.email} · Responsável
-          </span>
-          <SignOutButton />
-        </div>
-      </header>
-      <div className="orange-line" />
-      <main className="app-content">{children}</main>
-      <GuardiaoHelper />
-    </div>
+            <SignOutButton />
+          </div>
+        </header>
+        <div className="orange-line" />
+        <main className="app-content">{children}</main>
+        <GuardiaoHelper />
+      </div>
+    </GuardiaoProvider>
   );
 }
