@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, FormEvent, Suspense } from "react";
+import { useEffect, useMemo, useRef, useState, FormEvent, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   isValidPlaca,
@@ -12,6 +12,7 @@ import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj } from "@/lib/dados-veiculo";
 import { ConsultaAvancada } from "@/lib/dados-avancados";
 import Guardiao from "@/components/Guardiao";
+import { useGuardiaoResumo } from "@/components/guardiao-context";
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -27,6 +28,51 @@ function gerarChamadoId() {
   const carimbo = Date.now().toString(36).toUpperCase();
   const sufixo = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `DC-${carimbo}-${sufixo}`;
+}
+
+/** Monta o resumo inteligente que o Guardião mostra no widget flutuante:
+ * só o que realmente importa da ficha consultada, sem precisar abrir cada
+ * card. Prioriza os dados da consulta avançada (mais completos) quando
+ * disponíveis; senão usa os indicadores já vindos da consulta básica. */
+function buildResumoGuardiao(
+  veiculo: VeiculoReal | null,
+  avancada: ConsultaAvancada | null
+): { texto: string; alerta: boolean } | null {
+  if (!veiculo) return null;
+
+  const alertas: string[] = [];
+
+  if (veiculo.restricoes.length > 0) {
+    alertas.push(
+      `${veiculo.restricoes.length} restrição${veiculo.restricoes.length > 1 ? "ões" : ""} no documento`
+    );
+  }
+
+  if (avancada) {
+    if (avancada.totalMultas > 0) {
+      alertas.push(
+        `${avancada.totalMultas} multa${avancada.totalMultas > 1 ? "s" : ""} (${currency.format(avancada.valorTotalMultas)})`
+      );
+    }
+    if (avancada.rouboFurto) alertas.push("ocorrência de roubo/furto");
+    if (avancada.possuiRestricaoJudicial) alertas.push("restrição judicial (Renajud)");
+    if (avancada.possuiRestricaoExtrajudicial) alertas.push("restrição extrajudicial (ex: alienação fiduciária)");
+  } else {
+    if (veiculo.indicadores.rouboFurto) alertas.push("indício de roubo/furto");
+    if (veiculo.indicadores.restricaoJudicial) alertas.push("indício de restrição judicial");
+    if (veiculo.indicadores.multa) alertas.push("indício de multa");
+  }
+
+  if (alertas.length === 0) {
+    return {
+      alerta: false,
+      texto: avancada
+        ? `Placa ${veiculo.placa}: nada consta de relevante — documento limpo nos dados reais consultados.`
+        : `Placa ${veiculo.placa}: sem restrições no documento. Consulte multas/roubo-furto abaixo pra um resumo completo.`,
+    };
+  }
+
+  return { alerta: true, texto: `Placa ${veiculo.placa}: atenção — ${alertas.join(", ")}.` };
 }
 
 export default function DashboardPage() {
@@ -73,6 +119,12 @@ function DashboardContent() {
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
     };
   }, []);
+
+  const resumoGuardiao = useMemo(
+    () => buildResumoGuardiao(veiculoReal, avancada),
+    [veiculoReal, avancada]
+  );
+  useGuardiaoResumo(resumoGuardiao);
 
   async function runSearch(value: string) {
     setError("");

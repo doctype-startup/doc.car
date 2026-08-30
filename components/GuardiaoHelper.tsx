@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Guardiao from "./Guardiao";
+import { useGuardiaoContext } from "./guardiao-context";
 
 const DICAS: { match: (pathname: string) => boolean; texto: string }[] = [
   {
@@ -28,24 +29,29 @@ const DICAS: { match: (pathname: string) => boolean; texto: string }[] = [
 export default function GuardiaoHelper() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const guardiao = useGuardiaoContext();
 
   const dica = DICAS.find((d) => d.match(pathname))?.texto ?? "";
+  // Na tela de consulta, se já existe um resumo da ficha atual, ele
+  // substitui a dica genérica — é o que há de mais útil pra mostrar ali.
+  const resumo = pathname === "/dashboard" ? guardiao?.resumo : null;
+  const alerta = Boolean(resumo?.alerta);
 
   return (
     <div className="guardiao-helper">
       {open && (
         <div className="guardiao-helper-panel">
           <h4>Guardião DOCTYPE</h4>
-          <p>{dica}</p>
+          <p>{resumo?.texto || dica}</p>
         </div>
       )}
       <button
         type="button"
-        className="guardiao-helper-toggle"
+        className={`guardiao-helper-toggle${alerta ? " has-alert" : ""}`}
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir dicas do Guardião"
       >
-        <Guardiao pose="aguardando" size={44} />
+        <Guardiao pose={resumo ? (alerta ? "aprovacao" : "sucesso") : "aguardando"} size={44} />
       </button>
     </div>
   );
