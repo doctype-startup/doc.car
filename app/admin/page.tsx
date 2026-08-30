@@ -5,7 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPlanoPorPriceId, PLANOS } from "@/lib/plans";
 import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { revogarAcesso, concederAcessoManual } from "./actions";
+import { revogarAcesso, revogarEExcluirDados, concederAcessoManual } from "./actions";
+import ConfirmSubmitButton from "./confirm-submit-button";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dataHora = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -267,27 +268,47 @@ export default async function AdminPage() {
                     <td>{plano ? `${uso}/${plano.cota}` : "—"}</td>
                     <td>
                       {temAcesso ? (
-                        <form action={revogarAcesso.bind(null, despachante.id)}>
-                          <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
-                            Revogar acesso
-                          </button>
-                        </form>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                          <form action={revogarAcesso.bind(null, despachante.id)}>
+                            <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
+                              Revogar acesso
+                            </button>
+                          </form>
+                          <form action={revogarEExcluirDados.bind(null, despachante.id)}>
+                            <ConfirmSubmitButton
+                              className="danger-button"
+                              confirmText={`Excluir permanentemente a conta e todos os dados de ${despachante.name} (${despachante.email})? Isso cancela a assinatura, apaga perfil, histórico de consultas e uso — não tem como desfazer.`}
+                            >
+                              Revogar e excluir dados
+                            </ConfirmSubmitButton>
+                          </form>
+                        </div>
                       ) : (
-                        <form
-                          action={concederAcessoManual.bind(null, despachante.id)}
-                          style={{ display: "flex", gap: 6, alignItems: "center" }}
-                        >
-                          <select name="plano" defaultValue={PLANOS[0].id} style={{ fontSize: 12 }}>
-                            {PLANOS.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.nome}
-                              </option>
-                            ))}
-                          </select>
-                          <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
-                            Conceder teste
-                          </button>
-                        </form>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                          <form
+                            action={concederAcessoManual.bind(null, despachante.id)}
+                            style={{ display: "flex", gap: 6, alignItems: "center" }}
+                          >
+                            <select name="plano" defaultValue={PLANOS[0].id} style={{ fontSize: 12 }}>
+                              {PLANOS.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.nome}
+                                </option>
+                              ))}
+                            </select>
+                            <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
+                              Conceder teste
+                            </button>
+                          </form>
+                          <form action={revogarEExcluirDados.bind(null, despachante.id)}>
+                            <ConfirmSubmitButton
+                              className="danger-button"
+                              confirmText={`Excluir permanentemente a conta e todos os dados de ${despachante.name} (${despachante.email})? Apaga perfil, histórico de consultas e uso — não tem como desfazer.`}
+                            >
+                              Excluir dados
+                            </ConfirmSubmitButton>
+                          </form>
+                        </div>
                       )}
                     </td>
                   </tr>
