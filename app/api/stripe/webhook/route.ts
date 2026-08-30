@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { expirarCreditosPorCancelamento, registrarRecarga } from "@/lib/creditos";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
@@ -56,6 +57,29 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
       `[stripe-webhook] assinatura do usuário ${userId} gravada com status ${subscription.status}`
     );
   }
+
+  // Créditos de recarga não sobrevivem ao cancelamento da assinatura.
+  if (subscription.status === "canceled") {
+    await expirarCreditosPorCancelamento(userId);
+  }
+}
+
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  if (session.mode !== "payment") return;
+
+  const userId = session.metadata?.supabase_user_id;
+  const pacoteId = session.metadata?.pacote_id;
+  if (!userId || !pacoteId) return;
+
+  await registrarRecarga({
+    userId,
+    pacoteId,
+    checkoutSessionId: session.id,
+  });
+
+  console.log(
+    `[stripe-webhook] recarga (${pacoteId}) registrada pro usuário ${userId}`
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -88,6 +112,9 @@ export async function POST(request: NextRequest) {
     case "customer.subscription.updated":
     case "customer.subscription.deleted":
       await upsertSubscription(event.data.object as Stripe.Subscription);
+      break;
+    case "checkout.session.completed":
+      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
       break;
     default:
       break;
