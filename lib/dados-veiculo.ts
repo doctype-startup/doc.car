@@ -150,10 +150,17 @@ function sanitizeVeiculo(raw: any): VeiculoReal {
     dataUltimaAtualizacao: v.datas?.ultima_atualizacao || undefined,
     quilometragem,
     proprietarioNome: v.proprietario_atual?.nome || undefined,
-    proprietarioCnpj:
-      v.proprietario_atual?.tipo === "Juridica"
-        ? v.proprietario_atual?.cpf_cnpj || undefined
-        : undefined,
+    // O provedor não é consistente no valor de "tipo" entre os campos da
+    // mesma resposta — em proprietario_atual vem "CNPJ"/"CPF", já em
+    // doc_faturado vem "Juridica"/"Fisica". Aceita as duas variações, mas
+    // sempre confirma pelo tamanho do documento (14 dígitos = CNPJ) antes
+    // de liberar — nunca confia só no rótulo "tipo" pra não vazar CPF.
+    proprietarioCnpj: (() => {
+      const tipo = String(v.proprietario_atual?.tipo || "").toUpperCase();
+      const ehJuridica = tipo === "CNPJ" || tipo === "JURIDICA";
+      const documento = String(v.proprietario_atual?.cpf_cnpj || "").replace(/\D/g, "");
+      return ehJuridica && documento.length === 14 ? documento : undefined;
+    })(),
     cnpjFaturado:
       v.doc_faturado?.tipo?.descricao === "Juridica"
         ? v.doc_faturado?.documento || undefined
