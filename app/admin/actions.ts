@@ -20,6 +20,21 @@ async function exigirAdmin() {
     .single();
 
   if (!profile?.is_admin) throw new Error("Acesso negado.");
+
+  return user.id;
+}
+
+/** Cancela a assinatura real no Stripe, se houver — usado tanto pra revogar
+ * acesso quanto antes de excluir a conta, pra nunca deixar cobrança rodando
+ * sem o despachante ter mais acesso. */
+async function cancelarAssinaturaStripe(stripeSubscriptionId: string | null | undefined) {
+  if (!stripeSubscriptionId || !isStripeConfigured) return;
+  try {
+    await getStripe().subscriptions.cancel(stripeSubscriptionId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    console.error(`[admin] falha ao cancelar assinatura ${stripeSubscriptionId} no Stripe: ${message}`);
+  }
 }
 
 /** Revoga o acesso de um despachante. Se a assinatura for real (Stripe),
@@ -37,19 +52,43 @@ export async function revogarAcesso(userId: string) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (sub?.stripe_subscription_id && isStripeConfigured) {
-    try {
-      await getStripe().subscriptions.cancel(sub.stripe_subscription_id);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "erro desconhecido";
-      console.error(`[admin] falha ao cancelar assinatura ${sub.stripe_subscription_id} no Stripe: ${message}`);
-    }
-  }
+  await cancelarAssinaturaStripe(sub?.stripe_subscription_id);
 
   await admin
     .from("subscriptions")
     .update({ status: "canceled", updated_at: new Date().toISOString() })
     .eq("user_id", userId);
+
+  revalidatePath("/admin");
+}
+
+/** Revoga o acesso (cancelando a assinatura no Stripe, se houver) E apaga
+ * permanentemente a conta do despachante — perfil, histórico de consultas,
+ * uso de consulta avançada e assinatura somem juntos, via ON DELETE CASCADE
+ * a partir do usuário em auth.users. Irreversível: não existe undo, nem
+ * cópia de segurança automática desses dados. A UI exige confirmação antes
+ * de chamar isso. */
+export async function revogarEExcluirDados(userId: string) {
+  const adminUserId = await exigirAdmin();
+  if (userId === adminUserId) {
+    throw new Error("Você não pode excluir a própria conta de admin por aqui.");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("stripe_subscription_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  await cancelarAssinaturaStripe(sub?.stripe_subscription_id);
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) {
+    console.error(`[admin] falha ao excluir conta ${userId}: ${error.message}`);
+    throw new Error(`Não foi possível excluir a conta: ${error.message}`);
+  }
 
   revalidatePath("/admin");
 }
