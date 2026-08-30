@@ -100,6 +100,12 @@ function DashboardContent() {
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [consultasHoje, setConsultasHoje] = useState<number | null>(null);
   const [placasRecentes, setPlacasRecentes] = useState<string[]>([]);
+  const [saldoSimples, setSaldoSimples] = useState<{
+    cota: number;
+    usado: number;
+    origem: "cota" | "credito" | "avulso";
+    creditos: number;
+  } | null>(null);
 
   useEffect(() => {
     void countHistoryHoje().then(setConsultasHoje);
@@ -133,6 +139,7 @@ function DashboardContent() {
     setCpfCnpjCliente("");
     setAvancada(null);
     setAvancadaError("");
+    setSaldoSimples(null);
     setShowToast(false);
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
 
@@ -156,6 +163,7 @@ function DashboardContent() {
       const payload = await response.json();
       if (response.ok) {
         setVeiculoReal(payload.data);
+        setSaldoSimples(payload.saldo ?? null);
         setShowToast(true);
         toastTimeout.current = setTimeout(() => setShowToast(false), 4500);
       } else {
@@ -321,6 +329,15 @@ function DashboardContent() {
         <p className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>
           {realError}
         </p>
+      )}
+
+      {saldoSimples && saldoSimples.origem !== "cota" && (
+        <div className="info-banner no-print" style={{ marginBottom: 20 }}>
+          {saldoSimples.origem === "credito"
+            ? `Cota de consultas simples do mês esgotada — essa consulta usou 1 crédito de recarga (restam ${saldoSimples.creditos}).`
+            : `Cota de consultas simples do mês esgotada e sem crédito de recarga disponível — essa consulta foi cobrada avulsa.`}{" "}
+          <a href="/dashboard/creditos">Ver créditos</a>
+        </div>
       )}
 
       {veiculoReal && (

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getPlanoPorId } from "@/lib/plans";
+import { expirarCreditosPorCancelamento } from "@/lib/creditos";
 
 async function exigirAdmin() {
   const supabase = await createClient();
@@ -58,6 +59,8 @@ export async function revogarAcesso(userId: string) {
     .from("subscriptions")
     .update({ status: "canceled", updated_at: new Date().toISOString() })
     .eq("user_id", userId);
+
+  await expirarCreditosPorCancelamento(userId);
 
   revalidatePath("/admin");
 }

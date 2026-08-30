@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isStripeConfigured } from "@/lib/stripe";
-import { PLANOS, PRECO_AVULSO_CENTAVOS, getPlanoPorId } from "@/lib/plans";
+import {
+  PLANOS,
+  PRECO_AVULSO_CENTAVOS,
+  PRECO_AVULSO_SIMPLES_CENTAVOS,
+  getPlanoPorId,
+} from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
 
 const currency = new Intl.NumberFormat("pt-BR", {
@@ -52,7 +57,7 @@ export default async function AssinarPage({
         <p>
           {subscription?.status === "past_due"
             ? "Sua assinatura está com um pagamento pendente. Escolha um plano para regularizar."
-            : "Consultas de placa sempre liberadas. A cota abaixo é só para consultas avançadas (multas, roubo/furto e Renajud)."}
+            : "Cada plano já inclui uma cota de consultas simples e de consultas avançadas (multas, roubo/furto e Renajud) por mês. Depois da cota, dá pra comprar recarga de créditos ou pagar avulso."}
         </p>
       </div>
 
@@ -85,7 +90,11 @@ export default async function AssinarPage({
               {currency.format(plano.precoCentavos / 100)}
               <span> /mês</span>
             </div>
-            <p className="plano-cota">{plano.cota} consultas avançadas/mês</p>
+            <p className="plano-cota">
+              {plano.cotaSimples} consultas simples/mês
+              <br />
+              {plano.cota} consultas avançadas/mês
+            </p>
 
             {isStripeConfigured ? (
               <form action="/api/checkout" method="POST">
@@ -101,6 +110,10 @@ export default async function AssinarPage({
             )}
 
             <p className="plano-detalhe">
+              Consulta simples extra fora da cota:{" "}
+              {currency.format(PRECO_AVULSO_SIMPLES_CENTAVOS / 100)} cada
+              (ou compre um pacote de recarga com desconto).
+              <br />
               Consulta avançada extra fora da cota:{" "}
               {currency.format(PRECO_AVULSO_CENTAVOS / 100)} cada.
             </p>

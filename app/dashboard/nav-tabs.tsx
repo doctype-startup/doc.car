@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/dashboard", label: "Consultar placa" },
   { href: "/dashboard/historico", label: "Histórico" },
+  { href: "/dashboard/creditos", label: "Créditos" },
 ];
 
 export default function NavTabs({ isAdmin = false }: { isAdmin?: boolean }) {

@@ -86,11 +86,13 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
 1. Crie um produto e **três preços recorrentes mensais** em **Product catalog** — um por plano (Essencial, Profissional, Escritório; valores e cotas em `lib/plans.ts`). Copie cada `price_...` → `STRIPE_PRICE_ESSENCIAL` / `STRIPE_PRICE_PROFISSIONAL` / `STRIPE_PRICE_ESCRITORIO`.
 2. Em **Developers > API keys**, copie a `Secret key` → `STRIPE_SECRET_KEY`.
-3. Em **Developers > Webhooks**, crie um novo destino de evento (não reaproveite um endpoint de outro projeto) apontando para `https://SEU-DOMINIO/api/stripe/webhook`, escutando apenas: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. Copie o `Signing secret` → `STRIPE_WEBHOOK_SECRET`.
+3. Em **Developers > Webhooks**, crie um novo destino de evento (não reaproveite um endpoint de outro projeto) apontando para `https://SEU-DOMINIO/api/stripe/webhook`, escutando: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `checkout.session.completed`. Copie o `Signing secret` → `STRIPE_WEBHOOK_SECRET`.
 
    Se sua conta usa **Sandboxes** (contas Stripe novas), confirme que o produto, a chave e o webhook estão todos dentro do mesmo sandbox — cada sandbox tem chaves e webhooks isolados.
 
-4. **Cobrança avulsa do excedente**: quando o despachante estoura a cota de consultas avançadas do plano no período, `app/api/consulta-avancada` cria um item de fatura avulso (`stripe.invoiceItems.create`) no valor de `PRECO_AVULSO_CENTAVOS` (`lib/plans.ts`) — o Stripe inclui isso automaticamente na próxima fatura do cliente, sem precisar de nenhum job agendado.
+4. **Cobrança avulsa do excedente**: quando o despachante estoura a cota de consultas avançadas ou simples do plano no período (e, no caso de consulta simples, não tem crédito de recarga disponível), `app/api/consulta-avancada` e `app/api/veiculo` criam um item de fatura avulso (`stripe.invoiceItems.create`) nos valores de `PRECO_AVULSO_CENTAVOS` / `PRECO_AVULSO_SIMPLES_CENTAVOS` (`lib/plans.ts`) — o Stripe inclui isso automaticamente na próxima fatura do cliente, sem precisar de nenhum job agendado.
+
+5. **Pacotes de recarga de créditos**: não exigem nenhum Price cadastrado no Stripe — `app/api/checkout-creditos` cria a sessão de checkout com `price_data` inline (valores em `PACOTES_RECARGA`, `lib/plans.ts`), e o webhook (`checkout.session.completed`) credita os créditos ao usuário via `registrarRecarga()`. Créditos expiram 6 meses após a compra, ou imediatamente se a assinatura for cancelada (`expirarCreditosPorCancelamento()`, chamada tanto pelo webhook quanto pela revogação manual de acesso no admin).
 
 ### 3. Dados reais de veículo
 
