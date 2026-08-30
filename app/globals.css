@@ -905,7 +905,7 @@ button.wide {
 .guardiao-balao {
   position: relative;
   background: #fff;
-  border: 1px solid var(--border);
+  border: 2px solid var(--brand);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 13px;
@@ -917,14 +917,14 @@ button.wide {
 .guardiao-balao::before {
   content: "";
   position: absolute;
-  left: -7px;
+  left: -8px;
   top: 50%;
   transform: translateY(-50%);
   width: 12px;
   height: 12px;
   background: #fff;
-  border-left: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-left: 2px solid var(--brand);
+  border-bottom: 2px solid var(--brand);
   transform: translateY(-50%) rotate(45deg);
 }
 
