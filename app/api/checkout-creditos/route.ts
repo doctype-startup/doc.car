@@ -45,6 +45,10 @@ export async function POST(request: NextRequest) {
   // precisar de setup manual extra no dashboard do Stripe.
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
+    // Pacote é compra avulsa (não recorrente) — PIX funciona bem aqui,
+    // ao contrário da assinatura em /api/checkout, que precisa de um método
+    // reutilizável pra cobrar automaticamente todo mês.
+    payment_method_types: ["card", "pix"],
     customer: subscription?.stripe_customer_id || undefined,
     customer_email: subscription?.stripe_customer_id ? undefined : user.email,
     line_items: [

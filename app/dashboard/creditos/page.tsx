@@ -113,24 +113,29 @@ export default async function CreditosPage({
           <Guardiao pose="aguardando" mensagem="Recarga ainda não disponível — cobrança não configurada." />
         </div>
       ) : (
-        <div className="planos-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", maxWidth: 700 }}>
-          {PACOTES_RECARGA.map((pacote) => (
-            <div key={pacote.id} className="plano-card">
-              <h3>{pacote.creditos} consultas simples</h3>
-              <div className="plano-preco">{currency.format(pacote.precoCentavos / 100)}</div>
-              <p className="plano-cota">
-                {currency.format(pacote.precoCentavos / 100 / pacote.creditos)} por consulta —
-                válido por 6 meses
-              </p>
-              <form action="/api/checkout-creditos" method="POST">
-                <input type="hidden" name="pacote" value={pacote.id} />
-                <button className="primary wide" type="submit">
-                  Comprar recarga
-                </button>
-              </form>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="planos-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", maxWidth: 700 }}>
+            {PACOTES_RECARGA.map((pacote) => (
+              <div key={pacote.id} className="plano-card">
+                <h3>{pacote.creditos} consultas simples</h3>
+                <div className="plano-preco">{currency.format(pacote.precoCentavos / 100)}</div>
+                <p className="plano-cota">
+                  {currency.format(pacote.precoCentavos / 100 / pacote.creditos)} por consulta —
+                  válido por 6 meses
+                </p>
+                <form action="/api/checkout-creditos" method="POST">
+                  <input type="hidden" name="pacote" value={pacote.id} />
+                  <button className="primary wide" type="submit">
+                    Comprar recarga
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 12 }}>
+            Pagamento no cartão ou PIX.
+          </p>
+        </>
       )}
     </>
   );
