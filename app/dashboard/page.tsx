@@ -11,6 +11,7 @@ import {
 import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj } from "@/lib/dados-veiculo";
 import { ConsultaAvancada } from "@/lib/dados-avancados";
+import { PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
 import { useGuardiaoResumo } from "@/components/guardiao-context";
 
@@ -658,14 +659,14 @@ function DashboardContent() {
             {!avancada && (
               <button
                 type="button"
-                className="secondary-button no-print"
+                className="secondary-button destaque no-print"
                 onClick={runAvancada}
                 disabled={avancadaLoading}
                 style={{ marginBottom: 12 }}
               >
                 {avancadaLoading
                   ? "Consultando..."
-                  : "Consultar multas, roubo/furto e Renajud reais (R$ 3,00)"}
+                  : `Consultar multas, roubo/furto e Renajud reais (${currency.format(PRECO_AVULSO_CENTAVOS / 100)})`}
               </button>
             )}
             {avancadaError && (
