@@ -8,7 +8,7 @@ import {
   normalizePlaca,
   VehicleQuery,
 } from "@/lib/vehicle";
-import { addHistory, countHistoryHoje } from "@/lib/history";
+import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj } from "@/lib/dados-veiculo";
 import { ConsultaAvancada } from "@/lib/dados-avancados";
 import Guardiao from "@/components/Guardiao";
@@ -53,9 +53,22 @@ function DashboardContent() {
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [consultasHoje, setConsultasHoje] = useState<number | null>(null);
+  const [placasRecentes, setPlacasRecentes] = useState<string[]>([]);
 
   useEffect(() => {
     void countHistoryHoje().then(setConsultasHoje);
+    void getHistory().then((items) => {
+      const vistas = new Set<string>();
+      const unicas: string[] = [];
+      for (const item of items) {
+        if (!vistas.has(item.placa)) {
+          vistas.add(item.placa);
+          unicas.push(item.placa);
+        }
+        if (unicas.length === 4) break;
+      }
+      setPlacasRecentes(unicas);
+    });
     return () => {
       if (toastTimeout.current) clearTimeout(toastTimeout.current);
     };
@@ -84,6 +97,7 @@ function DashboardContent() {
     setChamadoId(gerarChamadoId());
     void addHistory(data.placa);
     setConsultasHoje((prev) => (prev ?? 0) + 1);
+    setPlacasRecentes((prev) => [data.placa, ...prev.filter((p) => p !== data.placa)].slice(0, 4));
 
     try {
       const response = await fetch(`/api/veiculo?placa=${encodeURIComponent(data.placa)}`);
@@ -185,18 +199,36 @@ function DashboardContent() {
         </form>
 
         <div className="search-examples">
-          <span>Experimente:</span>
-          {PLACAS_EXEMPLO.map((exemplo) => (
-            <button
-              key={exemplo}
-              type="button"
-              className="chip"
-              onClick={() => handleExampleClick(exemplo)}
-            >
-              {exemplo}
-            </button>
-          ))}
-          <span>— ou digite qualquer placa, o protótipo gera uma ficha na hora.</span>
+          {placasRecentes.length > 0 ? (
+            <>
+              <span>Últimas consultas:</span>
+              {placasRecentes.map((placaRecente) => (
+                <button
+                  key={placaRecente}
+                  type="button"
+                  className="chip"
+                  onClick={() => handleExampleClick(placaRecente)}
+                >
+                  {placaRecente}
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              <span>Experimente:</span>
+              {PLACAS_EXEMPLO.map((exemplo) => (
+                <button
+                  key={exemplo}
+                  type="button"
+                  className="chip"
+                  onClick={() => handleExampleClick(exemplo)}
+                >
+                  {exemplo}
+                </button>
+              ))}
+              <span>— ou digite qualquer placa, o protótipo gera uma ficha na hora.</span>
+            </>
+          )}
         </div>
       </div>
 
