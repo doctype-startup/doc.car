@@ -102,7 +102,7 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 3. **Importante — dados pessoais**: o provedor retorna, junto da ficha do veículo, um dossiê pessoal completo do proprietário (CPF, nome da mãe, data de nascimento, endereço, telefone, e-mail e dados de birô de crédito). `sanitizeVeiculo()` em `lib/dados-veiculo.ts` descarta tudo isso — só o **nome** do proprietário atual chega a sair da função. Isso é proposital: um despachante tem necessidade legítima de saber quem é o dono do veículo, mas não de acessar o dossiê pessoal completo dele (LGPD — minimização de dados). **Não amplie esse retorno sem revisar as implicações de LGPD antes.**
    - Exceção deliberada: quando o proprietário é **pessoa jurídica** (`tipo === "Juridica"` no retorno do provedor), o **CNPJ** é liberado (`proprietarioCnpj`). CNPJ é registro público de empresa, não dado pessoal protegido pela LGPD como o CPF — a mesma regra de nunca expor CPF de pessoa física continua valendo.
    - Se o cliente informar o próprio CPF/CNPJ pessoalmente (ex: presente numa vistoria), há um campo manual de anotação na ficha (`cpfCnpjCliente` em `app/dashboard/page.tsx`) — não vem da API, não é persistido, existe só naquela consulta/impressão.
-4. Débitos (IPVA, licenciamento) **continuam simulados** — não fazem parte do retorno de nenhum dos dois provedores.
+4. Débitos (IPVA, licenciamento) **não têm fonte de dado real disponível** — a ficha mostra "Nada consta" nesse card, sem simular valor nenhum, até algum provedor passar a oferecer isso.
 5. `lib/infosimples.ts` fica sem uso por enquanto (endpoint de veículo não autorizado na conta atual) — mantido só caso a consulta de multas ANTT/SIFAMA seja retomada.
 
 ### 4. Consulta avançada (multas, roubo/furto, Renajud)
@@ -111,7 +111,16 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 2. `lib/dados-avancados.ts` chama esse provedor sob demanda — só quando o despachante clica no botão "Consultar multas, roubo/furto e Renajud reais" na ficha, nunca automaticamente numa consulta normal, já que cada chamada tem custo. Devolve: multas em aberto (item a item: descrição, valor, pontos, gravidade, órgão competente, artigo e o papel do responsável — "Proprietário" ou "Condutor", nunca um nome de pessoa), totais agregados, ocorrência de roubo/furto (tipo, data, município) e restrições judiciais ativas no Renajud (tribunal, número do processo, tipo de restrição). O provedor não devolve data nem local de cada multa individual — só o que está listado acima existe na resposta dele.
 3. **Dados pessoais**: o provedor devolve, junto da ficha, nome e documento (CPF/CNPJ) do proprietário. `sanitizeAvancada()` em `lib/dados-avancados.ts` segue a mesma regra do provedor principal (item 3 acima): o **nome** do proprietário sai normalmente (necessidade legítima do despachante, não é o dado sensível aqui), mas o **CPF** nunca é exposto. Só o **CNPJ** sai junto do nome, e só quando o documento tem 14 dígitos (pessoa jurídica); documento de 11 dígitos (CPF de pessoa física) nunca é exposto. O campo `infrator` de cada multa também foi conferido: é só a categoria de quem responde pela multa, não um nome — validado com uma amostra real antes de liberar a listagem item a item.
 
-### 5. Configurar na Vercel
+### 5. Meus Veículos (cofre pessoal de CRLV)
+
+Diferente dos dois provedores acima (consulta por placa de terceiros, sempre sanitizada), "Meus Veículos" (`app/dashboard/meus-veiculos`) é um cofre **pessoal** por despachante: cada um cadastra manualmente ou importa o JSON obtido na própria sessão autenticada do Portal SENATRAN — dado que o despachante já possui legitimamente antes de entrar no sistema.
+
+1. Não precisa de nenhuma variável de ambiente nova nem serviço externo — os dados ficam no mesmo Supabase (tabela `meus_veiculos`, migração `0007_meus_veiculos.sql`) e o PDF do CRLV num bucket privado do Supabase Storage (`crlv-pdfs`), ambos isolados por despachante via RLS (`auth.uid() = user_id`).
+2. **Nunca** compartilhado entre despachantes — cada um só vê e gerencia o que ele mesmo cadastrou. Nome, CPF/CNPJ, Renavam e chassi aparecem completos, sem máscara, mas só pra conta que fez o cadastro/importação.
+3. Auditoria (`meus_veiculos_auditoria`) registra usuário, ação e veículo por id interno — nunca nome, CPF/CNPJ, Renavam ou chassi.
+4. Isso é uma feature distinta da consulta por placa: nunca faz busca de um terceiro sem relação com o despachante — só armazena e exibe de volta o que foi ativamente cadastrado/importado.
+
+### 6. Configurar na Vercel
 
 Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 11 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
 

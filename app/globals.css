@@ -312,7 +312,10 @@ h3,
   background: #fff;
 }
 
-button.primary {
+.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: var(--brand);
   color: #fff;
   border: none;
@@ -320,11 +323,12 @@ button.primary {
   padding: 11px 18px;
   font-size: 14px;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
-button.primary:hover {
+.primary:hover {
   background: var(--brand-dark);
 }
 
