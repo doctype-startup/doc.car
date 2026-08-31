@@ -7,6 +7,7 @@ type Props = {
   cotaInicial: number | null;
   creditosInicial: number;
   precoAvulsoFormatado: string;
+  precoAvulsoAvancadaFormatado: string;
 };
 
 const INTERVALO_MS = 15000;
@@ -16,6 +17,7 @@ export default function SaldoConsultas({
   cotaInicial,
   creditosInicial,
   precoAvulsoFormatado,
+  precoAvulsoAvancadaFormatado,
 }: Props) {
   const [uso, setUso] = useState(usoInicial);
   const [cota, setCota] = useState(cotaInicial);
@@ -84,7 +86,7 @@ export default function SaldoConsultas({
         </div>
       )}
 
-      <div className="grid-2">
+      <div className="grid-3">
         <div className="kv">
           <span className="label">Créditos de recarga disponíveis</span>
           <span className="value">{creditos}</span>
@@ -92,6 +94,10 @@ export default function SaldoConsultas({
         <div className="kv">
           <span className="label">Consulta simples avulsa (sem crédito)</span>
           <span className="value">{precoAvulsoFormatado}</span>
+        </div>
+        <div className="kv">
+          <span className="label">Consulta avançada avulsa</span>
+          <span className="value">{precoAvulsoAvancadaFormatado}</span>
         </div>
       </div>
     </div>
