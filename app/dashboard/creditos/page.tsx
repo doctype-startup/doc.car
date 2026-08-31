@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isStripeConfigured } from "@/lib/stripe";
 import {
   PACOTES_RECARGA,
+  PRECO_AVULSO_CENTAVOS,
   PRECO_AVULSO_SIMPLES_CENTAVOS,
   getPlanoPorPriceId,
 } from "@/lib/plans";
@@ -80,6 +81,7 @@ export default async function CreditosPage({
         cotaInicial={plano?.cotaSimples ?? null}
         creditosInicial={saldo}
         precoAvulsoFormatado={currency.format(PRECO_AVULSO_SIMPLES_CENTAVOS / 100)}
+        precoAvulsoAvancadaFormatado={currency.format(PRECO_AVULSO_CENTAVOS / 100)}
       />
 
       {recargas.length > 0 && (
