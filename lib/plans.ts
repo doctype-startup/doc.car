@@ -17,7 +17,7 @@ export const PRECO_AVULSO_CENTAVOS = 1690;
 /** Preço da consulta simples avulsa, cobrada quando o usuário estoura a
  * cota do plano no período e não tem crédito de recarga disponível. Em
  * centavos. */
-export const PRECO_AVULSO_SIMPLES_CENTAVOS = 350;
+export const PRECO_AVULSO_SIMPLES_CENTAVOS = 620;
 
 export const PLANOS: Plano[] = [
   {
@@ -60,8 +60,8 @@ export type PacoteRecarga = {
 export const CREDITOS_VALIDADE_MESES = 6;
 
 export const PACOTES_RECARGA: PacoteRecarga[] = [
-  { id: "recarga-50", creditos: 50, precoCentavos: 14990 },
-  { id: "recarga-100", creditos: 100, precoCentavos: 23000 },
+  { id: "recarga-50", creditos: 50, precoCentavos: 26500 },
+  { id: "recarga-100", creditos: 100, precoCentavos: 41000 },
 ];
 
 export function getPacotePorId(id: string | null | undefined): PacoteRecarga | undefined {
