@@ -239,15 +239,24 @@ function montarLinha(userId: string, input: DadosVeiculoInput) {
   };
 }
 
+export type CadastroResultado = {
+  veiculo: MeuVeiculo;
+  /** Presente quando o veículo foi salvo mas o PDF não pôde ser
+   * armazenado (ex.: bucket "crlv-pdfs" ainda não criado no Supabase) —
+   * o cadastro não fica bloqueado por um problema só do PDF. */
+  avisoCrlv?: string;
+};
+
 export async function cadastrarVeiculo(
   supabase: SupabaseClient,
   userId: string,
   input: DadosVeiculoInput,
   pdfBuffer?: Buffer
-): Promise<MeuVeiculo> {
+): Promise<CadastroResultado> {
   const linha = montarLinha(userId, input);
 
   let crlvStoragePath: string | null | undefined = undefined;
+  let avisoCrlv: string | undefined;
   if (pdfBuffer) {
     if (pdfBuffer.subarray(0, 5).toString() !== "%PDF-") {
       throw new Error("Arquivo não é um PDF válido");
@@ -256,8 +265,11 @@ export async function cadastrarVeiculo(
     const { error: uploadError } = await supabase.storage
       .from("crlv-pdfs")
       .upload(path, pdfBuffer, { contentType: "application/pdf", upsert: true });
-    if (uploadError) throw new Error(uploadError.message);
-    crlvStoragePath = path;
+    if (uploadError) {
+      avisoCrlv = `Veículo cadastrado, mas o PDF não pôde ser salvo (${uploadError.message}). Tente enviar o PDF de novo depois.`;
+    } else {
+      crlvStoragePath = path;
+    }
   }
 
   const { data, error } = await supabase
@@ -270,7 +282,7 @@ export async function cadastrarVeiculo(
     .single();
 
   if (error) throw new Error(error.message);
-  return mapRow(data);
+  return { veiculo: mapRow(data), avisoCrlv };
 }
 
 /** Aceita tanto `{ veiculos: [...] }` (retorno em lista da SENATRAN) quanto
@@ -293,7 +305,8 @@ export async function importarSenatran(
   const importados: MeuVeiculo[] = [];
   for (const veiculo of veiculos) {
     const normalizado = { ...veiculo, renavam: veiculo.renavam ?? veiculo.codigoRenavam };
-    importados.push(await cadastrarVeiculo(supabase, userId, normalizado));
+    const { veiculo: cadastrado } = await cadastrarVeiculo(supabase, userId, normalizado);
+    importados.push(cadastrado);
   }
   return importados;
 }

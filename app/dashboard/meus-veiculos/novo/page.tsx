@@ -11,6 +11,8 @@ export default function NovoVeiculoPage() {
   const [modo, setModo] = useState<Modo>("manual");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [avisoCrlv, setAvisoCrlv] = useState("");
+  const [placaCriada, setPlacaCriada] = useState("");
 
   const [placa, setPlaca] = useState("");
   const [renavam, setRenavam] = useState("");
@@ -58,7 +60,12 @@ export default function NovoVeiculoPage() {
       });
       const payload = await response.json();
       if (response.ok) {
-        router.push(`/dashboard/meus-veiculos/${payload.veiculo.placa}`);
+        if (payload.avisoCrlv) {
+          setAvisoCrlv(payload.avisoCrlv);
+          setPlacaCriada(payload.veiculo.placa);
+        } else {
+          router.push(`/dashboard/meus-veiculos/${payload.veiculo.placa}`);
+        }
       } else {
         setError(payload.error || "Não foi possível cadastrar o veículo.");
       }
@@ -116,6 +123,13 @@ export default function NovoVeiculoPage() {
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 480, marginBottom: 20 }}>{error}</div>}
+
+      {avisoCrlv && (
+        <div className="info-banner" style={{ maxWidth: 480, marginBottom: 20 }}>
+          {avisoCrlv}{" "}
+          <Link href={`/dashboard/meus-veiculos/${placaCriada}`}>Ver veículo cadastrado</Link>
+        </div>
+      )}
 
       {modo === "manual" ? (
         <form className="card" onSubmit={handleCadastroManual} style={{ maxWidth: 560 }}>
