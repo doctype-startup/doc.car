@@ -305,9 +305,10 @@ function DashboardContent() {
       <div className="info-banner">
         Ficha do veículo, FIPE e restrições vêm do provedor de dados real —
         só aparece quando a consulta funciona. Débitos de IPVA/licenciamento
-        ainda não têm fonte de dados disponível. Multas, roubo/furto e
-        Renajud têm consulta avançada real, sob demanda — veja o botão no
-        card de Multas abaixo (custo por consulta).
+        ainda não têm fonte de dados disponível. Renavam, chassi,
+        proprietário e dados do CRV, além de multas, roubo/furto e Renajud,
+        têm consulta avançada real, sob demanda — veja o botão no card
+        Identificação do documento abaixo (custo por consulta).
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -415,15 +416,6 @@ function DashboardContent() {
                   {veiculoReal.municipio || "—"}/{veiculoReal.uf || "—"}
                 </span>
               </div>
-              <div className="kv">
-                <span className="label">Renavam</span>
-                <span className="value">{veiculoReal.renavam || "—"}</span>
-              </div>
-
-              <div className="kv">
-                <span className="label">Chassi</span>
-                <span className="value">{veiculoReal.chassi || "—"}</span>
-              </div>
               {veiculoReal.placaMercosul && (
                 <div className="kv">
                   <span className="label">Placa Mercosul</span>
@@ -434,22 +426,6 @@ function DashboardContent() {
                 <div className="kv">
                   <span className="label">Placa anterior</span>
                   <span className="value">{veiculoReal.placaAnterior}</span>
-                </div>
-              )}
-              <div className="kv">
-                <span className="label">Proprietário</span>
-                <span className="value">{veiculoReal.proprietarioNome || "—"}</span>
-              </div>
-              {veiculoReal?.proprietarioCnpj && (
-                <div className="kv">
-                  <span className="label">CNPJ do proprietário</span>
-                  <span className="value">{formatCnpj(veiculoReal.proprietarioCnpj)}</span>
-                </div>
-              )}
-              {veiculoReal?.cnpjFaturado && (
-                <div className="kv">
-                  <span className="label">CNPJ da fatura original</span>
-                  <span className="value">{formatCnpj(veiculoReal.cnpjFaturado)}</span>
                 </div>
               )}
               {veiculoReal?.anoUltimoLicenciamento && (
@@ -468,24 +444,6 @@ function DashboardContent() {
                 <div className="kv">
                   <span className="label">Dados atualizados em</span>
                   <span className="value">{veiculoReal.dataUltimaAtualizacao}</span>
-                </div>
-              )}
-              {veiculoReal?.numeroSequencialDocumento && (
-                <div className="kv">
-                  <span className="label">Número sequencial do documento</span>
-                  <span className="value">{veiculoReal.numeroSequencialDocumento}</span>
-                </div>
-              )}
-              {veiculoReal?.codigoSegurancaCrv && (
-                <div className="kv">
-                  <span className="label">Código de segurança do CRV</span>
-                  <span className="value">{veiculoReal.codigoSegurancaCrv}</span>
-                </div>
-              )}
-              {veiculoReal?.situacaoChassi && (
-                <div className="kv">
-                  <span className="label">Situação do chassi</span>
-                  <span className="value">{veiculoReal.situacaoChassi}</span>
                 </div>
               )}
               <div className="kv">
@@ -643,16 +601,8 @@ function DashboardContent() {
           )}
 
           <div className="card">
-            <h3>Débitos</h3>
-            <p style={{ fontSize: 13, color: "var(--muted)" }}>
-              Nada consta. Consulta de débitos de IPVA e licenciamento ainda não disponível
-              nesta versão.
-            </p>
-          </div>
-
-          <div className="card">
             <h3>
-              Multas{" "}
+              Identificação do documento{" "}
               {avancada && <span className="badge ok">Dados reais</span>}
             </h3>
 
@@ -666,7 +616,7 @@ function DashboardContent() {
               >
                 {avancadaLoading
                   ? "Consultando..."
-                  : `Consultar multas, roubo/furto e Renajud reais (${currency.format(PRECO_AVULSO_CENTAVOS / 100)})`}
+                  : `Consultar Renavam, chassi, proprietário, multas, roubo/furto e Renajud reais (${currency.format(PRECO_AVULSO_CENTAVOS / 100)})`}
               </button>
             )}
             {avancadaError && (
@@ -675,15 +625,56 @@ function DashboardContent() {
               </p>
             )}
 
-            {(avancada?.anoUltimoLicenciamento ||
-              avancada?.numeroCrv ||
-              avancada?.numeroSequencialDocumento ||
-              avancada?.codigoSegurancaCrv) && (
-              <div className="grid-2" style={{ marginBottom: 12 }}>
-                {avancada.anoUltimoLicenciamento && (
+            {avancada ? (
+              <div className="grid-3">
+                <div className="kv">
+                  <span className="label">Renavam</span>
+                  <span className="value">{veiculoReal.renavam || "—"}</span>
+                </div>
+                <div className="kv">
+                  <span className="label">Chassi</span>
+                  <span className="value">{veiculoReal.chassi || "—"}</span>
+                </div>
+                <div className="kv">
+                  <span className="label">Proprietário</span>
+                  <span className="value">
+                    {veiculoReal.proprietarioNome || avancada.proprietarioNome || "—"}
+                  </span>
+                </div>
+                {(veiculoReal.proprietarioCnpj || avancada.proprietarioCnpj) && (
                   <div className="kv">
-                    <span className="label">Ano do último licenciamento</span>
-                    <span className="value">{avancada.anoUltimoLicenciamento}</span>
+                    <span className="label">CNPJ do proprietário</span>
+                    <span className="value">
+                      {formatCnpj(veiculoReal.proprietarioCnpj || avancada.proprietarioCnpj || "")}
+                    </span>
+                  </div>
+                )}
+                {veiculoReal.cnpjFaturado && (
+                  <div className="kv">
+                    <span className="label">CNPJ da fatura original</span>
+                    <span className="value">{formatCnpj(veiculoReal.cnpjFaturado)}</span>
+                  </div>
+                )}
+                {(veiculoReal.numeroSequencialDocumento || avancada.numeroSequencialDocumento) && (
+                  <div className="kv">
+                    <span className="label">Número sequencial do documento</span>
+                    <span className="value">
+                      {veiculoReal.numeroSequencialDocumento || avancada.numeroSequencialDocumento}
+                    </span>
+                  </div>
+                )}
+                {(veiculoReal.codigoSegurancaCrv || avancada.codigoSegurancaCrv) && (
+                  <div className="kv">
+                    <span className="label">Código de segurança do CRV</span>
+                    <span className="value">
+                      {veiculoReal.codigoSegurancaCrv || avancada.codigoSegurancaCrv}
+                    </span>
+                  </div>
+                )}
+                {(veiculoReal.situacaoChassi || avancada.situacaoChassi) && (
+                  <div className="kv">
+                    <span className="label">Situação do chassi</span>
+                    <span className="value">{veiculoReal.situacaoChassi || avancada.situacaoChassi}</span>
                   </div>
                 )}
                 {avancada.numeroCrv && (
@@ -692,30 +683,48 @@ function DashboardContent() {
                     <span className="value">{avancada.numeroCrv}</span>
                   </div>
                 )}
-                {avancada.numeroSequencialDocumento && (
-                  <div className="kv">
-                    <span className="label">Número sequencial do documento</span>
-                    <span className="value">{avancada.numeroSequencialDocumento}</span>
-                  </div>
-                )}
-                {avancada.codigoSegurancaCrv && (
-                  <div className="kv">
-                    <span className="label">Código de segurança do CRV</span>
-                    <span className="value">{avancada.codigoSegurancaCrv}</span>
-                  </div>
-                )}
                 {avancada.identificacaoUnica && (
                   <div className="kv">
                     <span className="label">Identificação única</span>
                     <span className="value">{avancada.identificacaoUnica}</span>
                   </div>
                 )}
-                {avancada.situacaoChassi && (
-                  <div className="kv">
-                    <span className="label">Situação do chassi</span>
-                    <span className="value">{avancada.situacaoChassi}</span>
-                  </div>
-                )}
+              </div>
+            ) : (
+              !avancadaError && (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Nada consta. Clique no botão acima pra consultar dados reais.
+                </p>
+              )
+            )}
+          </div>
+
+          <div className="card">
+            <h3>Débitos</h3>
+            <p style={{ fontSize: 13, color: "var(--muted)" }}>
+              Nada consta. Consulta de débitos de IPVA e licenciamento ainda não disponível
+              nesta versão.
+            </p>
+          </div>
+
+          <div className="card">
+            <h3>
+              Multas{" "}
+              {avancada && <span className="badge ok">Dados reais</span>}
+            </h3>
+
+            {avancadaError && (
+              <p className="form-error" style={{ marginBottom: 12 }}>
+                {avancadaError}
+              </p>
+            )}
+
+            {avancada?.anoUltimoLicenciamento && (
+              <div className="grid-2" style={{ marginBottom: 12 }}>
+                <div className="kv">
+                  <span className="label">Ano do último licenciamento</span>
+                  <span className="value">{avancada.anoUltimoLicenciamento}</span>
+                </div>
               </div>
             )}
 
@@ -814,7 +823,8 @@ function DashboardContent() {
             ) : (
               !avancadaError && (
                 <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nada consta. Clique no botão acima pra consultar dados reais.
+                  Nada consta. Consulte no card Identificação do documento acima pra
+                  liberar dados reais.
                 </p>
               )
             )}
