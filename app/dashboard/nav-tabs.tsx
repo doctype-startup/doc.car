@@ -7,6 +7,7 @@ const TABS = [
   { href: "/dashboard", label: "Consultar placa" },
   { href: "/dashboard/historico", label: "Histórico" },
   { href: "/dashboard/creditos", label: "Créditos" },
+  { href: "/dashboard/meus-veiculos", label: "Meus Veículos" },
 ];
 
 export default function NavTabs({ isAdmin = false }: { isAdmin?: boolean }) {
