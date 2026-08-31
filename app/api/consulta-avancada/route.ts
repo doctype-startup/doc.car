@@ -4,6 +4,7 @@ import { consultarAvancadaPorPlaca, isDebitosApiConfigured } from "@/lib/dados-a
 import { contarUsoNoPeriodo, registrarUsoAvancada } from "@/lib/uso-avancada";
 import { getPlanoPorPriceId, PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { salvarAvancadaCache } from "@/lib/consulta-cache";
 
 function inicioDoPeriodo(currentPeriodStart: string | null) {
   if (currentPeriodStart) return currentPeriodStart;
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest) {
   if (estourouCota) {
     await cobrarAvulso(subscription?.stripe_customer_id ?? null, placa);
   }
+  await salvarAvancadaCache(user.id, result.data.placa, result.data);
 
   return NextResponse.json({
     data: result.data,

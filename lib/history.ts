@@ -43,6 +43,7 @@ export async function clearHistory() {
   if (!user) return;
 
   await supabase.from("search_history").delete().eq("user_id", user.id);
+  await supabase.from("consulta_cache").delete().eq("user_id", user.id);
 }
 
 export async function countHistoryHoje(): Promise<number> {
