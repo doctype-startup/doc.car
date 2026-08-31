@@ -110,6 +110,12 @@ export default function MeusVeiculosPage() {
                 <Link href={`/dashboard/meus-veiculos/${veiculo.placa}`} className="secondary-button">
                   Ver detalhes
                 </Link>
+                <Link
+                  href={`/dashboard/meus-veiculos/${veiculo.placa}/editar`}
+                  className="secondary-button"
+                >
+                  Editar
+                </Link>
                 <button
                   type="button"
                   className="danger-button"
