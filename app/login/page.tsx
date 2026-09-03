@@ -9,6 +9,11 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+const WHATSAPP_CONTATO = "5541998365578";
+const WHATSAPP_MENSAGEM = encodeURIComponent(
+  "Olá! Quero saber mais sobre um plano personalizado no DOC.CAR."
+);
+
 export default function LoginPage() {
   return (
     <div className="login-page">
@@ -44,6 +49,20 @@ export default function LoginPage() {
                 </span>
               </Link>
             ))}
+            <a
+              className="login-plano-card"
+              href={`https://wa.me/${WHATSAPP_CONTATO}?text=${WHATSAPP_MENSAGEM}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <div className="login-plano-linha">
+                <span className="login-plano-nome">Empresas de grande porte</span>
+                <span className="login-plano-preco">Fale conosco</span>
+              </div>
+              <span className="login-plano-cota">
+                Volume alto de consultas? A gente monta um plano sob medida.
+              </span>
+            </a>
           </div>
         </div>
       </div>
