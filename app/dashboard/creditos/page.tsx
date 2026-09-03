@@ -2,12 +2,14 @@ import { createClient } from "@/lib/supabase/server";
 import { isStripeConfigured } from "@/lib/stripe";
 import {
   PACOTES_RECARGA,
+  PRECO_AVULSO_CENTAVOS,
   PRECO_AVULSO_SIMPLES_CENTAVOS,
   getPlanoPorPriceId,
 } from "@/lib/plans";
 import { contarUsoSimplesNoPeriodo } from "@/lib/uso-simples";
 import { getRecargasAtivas, getSaldoCreditos } from "@/lib/creditos";
 import Guardiao from "@/components/Guardiao";
+import SaldoConsultas from "@/components/SaldoConsultas";
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -74,39 +76,25 @@ export default async function CreditosPage({
         </p>
       )}
 
-      <div className="card" style={{ marginBottom: 24 }}>
-        <h3>Seu saldo</h3>
-        <div className="grid-3">
-          <div className="kv">
-            <span className="label">Consultas simples usadas neste período</span>
-            <span className="value">
-              {plano ? `${usoNoPeriodo}/${plano.cotaSimples}` : usoNoPeriodo}
-            </span>
-          </div>
-          <div className="kv">
-            <span className="label">Créditos de recarga disponíveis</span>
-            <span className="value">{saldo}</span>
-          </div>
-          <div className="kv">
-            <span className="label">Consulta simples avulsa (sem crédito)</span>
-            <span className="value">
-              {currency.format(PRECO_AVULSO_SIMPLES_CENTAVOS / 100)}
-            </span>
-          </div>
-        </div>
+      <SaldoConsultas
+        usoInicial={usoNoPeriodo}
+        cotaInicial={plano?.cotaSimples ?? null}
+        creditosInicial={saldo}
+        precoAvulsoFormatado={currency.format(PRECO_AVULSO_SIMPLES_CENTAVOS / 100)}
+        precoAvulsoAvancadaFormatado={currency.format(PRECO_AVULSO_CENTAVOS / 100)}
+      />
 
-        {recargas.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <span className="label">Validade das recargas</span>
-            {recargas.map((recarga) => (
-              <p key={recarga.id} style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
-                {recarga.creditosRestantes} crédito{recarga.creditosRestantes > 1 ? "s" : ""} —
-                válido até {new Date(recarga.expiraEm).toLocaleDateString("pt-BR")}
-              </p>
-            ))}
-          </div>
-        )}
-      </div>
+      {recargas.length > 0 && (
+        <div className="card" style={{ marginBottom: 24, marginTop: -8 }}>
+          <span className="label">Validade das recargas</span>
+          {recargas.map((recarga) => (
+            <p key={recarga.id} style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+              {recarga.creditosRestantes} crédito{recarga.creditosRestantes > 1 ? "s" : ""} —
+              válido até {new Date(recarga.expiraEm).toLocaleDateString("pt-BR")}
+            </p>
+          ))}
+        </div>
+      )}
 
       {!isStripeConfigured ? (
         <div className="empty-state">

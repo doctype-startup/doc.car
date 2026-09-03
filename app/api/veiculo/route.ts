@@ -5,6 +5,7 @@ import { contarUsoSimplesNoPeriodo, registrarUsoSimples } from "@/lib/uso-simple
 import { consumirCredito, getSaldoCreditos } from "@/lib/creditos";
 import { getPlanoPorPriceId, PRECO_AVULSO_SIMPLES_CENTAVOS } from "@/lib/plans";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { salvarVeiculoCache } from "@/lib/consulta-cache";
 
 function inicioDoPeriodo(currentPeriodStart: string | null) {
   if (currentPeriodStart) return currentPeriodStart;
@@ -96,6 +97,7 @@ export async function GET(request: NextRequest) {
   }
 
   await registrarUsoSimples({ userId: user.id, placa, origem });
+  await salvarVeiculoCache(user.id, result.data.placa, result.data);
 
   return NextResponse.json({
     data: result.data,

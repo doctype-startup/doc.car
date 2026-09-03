@@ -687,6 +687,53 @@ button.wide {
   border-radius: 999px;
 }
 
+.saldo-consumo {
+  border: 2px solid var(--doctype-orange);
+}
+
+.saldo-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.status-dot.atualizando {
+  background: var(--doctype-orange);
+}
+
+.saldo-barra-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.saldo-barra {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.saldo-barra-fill {
+  height: 100%;
+  background: var(--doctype-orange);
+  transition: width 0.4s ease;
+}
+
 .badge.ok {
   background: #e9f8f0;
   color: var(--success);

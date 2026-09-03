@@ -45,20 +45,25 @@ export default async function HistoricoPage() {
               key={`${item.placa}-${index}`}
               style={{
                 display: "flex",
+                alignItems: "center",
                 justifyContent: "space-between",
+                gap: 12,
                 padding: "10px 0",
                 borderBottom: "1px solid var(--border)",
               }}
             >
+              <div>
+                <span style={{ fontWeight: 700 }}>{item.placa}</span>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                  {item.consultadoEm}
+                </p>
+              </div>
               <Link
                 href={{ pathname: "/dashboard", query: { placa: item.placa } }}
-                style={{ fontWeight: 700 }}
+                className="secondary-button"
               >
-                {item.placa}
+                Ver resultado
               </Link>
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                {item.consultadoEm}
-              </span>
             </div>
           ))}
         </div>

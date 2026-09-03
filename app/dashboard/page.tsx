@@ -107,6 +107,7 @@ function DashboardContent() {
     origem: "cota" | "credito" | "avulso";
     creditos: number;
   } | null>(null);
+  const [fromCache, setFromCache] = useState(false);
 
   useEffect(() => {
     void countHistoryHoje().then(setConsultasHoje);
@@ -141,6 +142,7 @@ function DashboardContent() {
     setAvancada(null);
     setAvancadaError("");
     setSaldoSimples(null);
+    setFromCache(false);
     setShowToast(false);
     if (toastTimeout.current) clearTimeout(toastTimeout.current);
 
@@ -201,12 +203,55 @@ function DashboardContent() {
     setAvancadaLoading(false);
   }
 
+  async function runFromCache(value: string) {
+    if (!isValidPlaca(value)) {
+      void runSearch(value);
+      return;
+    }
+
+    const placaNormalizada = normalizePlaca(value);
+
+    try {
+      const response = await fetch(
+        `/api/veiculo-cache?placa=${encodeURIComponent(placaNormalizada)}`
+      );
+      if (!response.ok) {
+        void runSearch(value);
+        return;
+      }
+      const payload = await response.json();
+
+      setError("");
+      setRealError("");
+      setAvancadaError("");
+      setCpfCnpjCliente("");
+      setSaldoSimples(null);
+      setShowToast(false);
+      if (toastTimeout.current) clearTimeout(toastTimeout.current);
+
+      const data = lookupVehicle(placaNormalizada);
+      setResult(data);
+      setChamadoId(gerarChamadoId());
+      setVeiculoReal(payload.data);
+      setAvancada(payload.avancada ?? null);
+      setFromCache(true);
+
+      void addHistory(data.placa);
+      setConsultasHoje((prev) => (prev ?? 0) + 1);
+      setPlacasRecentes((prev) =>
+        [data.placa, ...prev.filter((p) => p !== data.placa)].slice(0, 4)
+      );
+    } catch {
+      void runSearch(value);
+    }
+  }
+
   useEffect(() => {
     const fromQuery = searchParams.get("placa");
     if (fromQuery) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- triggers a search when arriving via a ?placa= link
       setPlaca(normalizePlaca(fromQuery));
-      void runSearch(fromQuery);
+      void runFromCache(fromQuery);
     }
   }, [searchParams]);
 
@@ -217,7 +262,7 @@ function DashboardContent() {
 
   function handleExampleClick(exemplo: string) {
     setPlaca(exemplo);
-    void runSearch(exemplo);
+    void runFromCache(exemplo);
   }
 
   function handlePrint() {
@@ -378,6 +423,15 @@ function DashboardContent() {
               )}
               {veiculoReal.indicadores.multa && (
                 <span className="badge warn">Multa</span>
+              )}
+              {fromCache && (
+                <button
+                  type="button"
+                  className="print-button no-print"
+                  onClick={() => void runSearch(veiculoReal.placa)}
+                >
+                  Consultar novamente (gasta cota)
+                </button>
               )}
               <button type="button" className="print-button no-print" onClick={handlePrint}>
                 Imprimir

@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
   const pdfBuffer = input.pdfBase64 ? Buffer.from(input.pdfBase64, "base64") : undefined;
 
   try {
-    const veiculo = await cadastrarVeiculo(supabase, userId, input, pdfBuffer);
+    const { veiculo, avisoCrlv } = await cadastrarVeiculo(supabase, userId, input, pdfBuffer);
     await registrarAuditoria(supabase, {
       userId,
       veiculoId: veiculo.id,
       acao: "cadastro",
       resultado: "sucesso",
     });
-    return NextResponse.json({ veiculo }, { status: 201 });
+    return NextResponse.json({ veiculo, avisoCrlv }, { status: 201 });
   } catch (err) {
     await registrarAuditoria(supabase, { userId, acao: "cadastro", resultado: "erro" });
     const message = err instanceof Error ? err.message : "erro desconhecido";
