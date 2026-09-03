@@ -30,25 +30,32 @@ export async function POST(request: NextRequest) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const stripe = getStripe();
   const origin = request.nextUrl.origin;
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: existing?.stripe_customer_id || undefined,
-    customer_email: existing?.stripe_customer_id ? undefined : user.email,
-    line_items: [{ price: plano.priceId, quantity: 1 }],
-    success_url: `${origin}/dashboard`,
-    cancel_url: `${origin}/assinar`,
-    client_reference_id: user.id,
-    subscription_data: {
-      metadata: { supabase_user_id: user.id },
-    },
-  });
+  let sessionUrl: string | null = null;
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: existing?.stripe_customer_id || undefined,
+      customer_email: existing?.stripe_customer_id ? undefined : user.email,
+      line_items: [{ price: plano.priceId, quantity: 1 }],
+      success_url: `${origin}/dashboard`,
+      cancel_url: `${origin}/assinar`,
+      client_reference_id: user.id,
+      subscription_data: {
+        metadata: { supabase_user_id: user.id },
+      },
+    });
+    sessionUrl = session.url;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    console.error(`[checkout] falha ao criar sessão (plano=${plano.id}): ${message}`);
+  }
 
-  if (!session.url) {
+  if (!sessionUrl) {
     return NextResponse.redirect(new URL("/assinar?erro=1", request.url));
   }
 
-  return NextResponse.redirect(session.url, { status: 303 });
+  return NextResponse.redirect(sessionUrl, { status: 303 });
 }
