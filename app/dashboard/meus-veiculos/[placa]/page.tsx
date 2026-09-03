@@ -51,9 +51,18 @@ export default function DetalheVeiculoPage({ params }: { params: Promise<{ placa
           <h1>{placa}</h1>
           <p>Dados completos — visível só pra sua conta.</p>
         </div>
-        <Link href="/dashboard/meus-veiculos" className="secondary-button" style={{ textDecoration: "none" }}>
-          Voltar
-        </Link>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Link
+            href={`/dashboard/meus-veiculos/${placa}/editar`}
+            className="secondary-button"
+            style={{ textDecoration: "none" }}
+          >
+            Editar
+          </Link>
+          <Link href="/dashboard/meus-veiculos" className="secondary-button" style={{ textDecoration: "none" }}>
+            Voltar
+          </Link>
+        </div>
       </div>
 
       <p className="hint" style={{ marginBottom: 16 }}>
