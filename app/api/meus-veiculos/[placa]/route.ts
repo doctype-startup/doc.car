@@ -63,7 +63,7 @@ export async function PUT(
 
   try {
     const normalizada = normalizarPlaca(placa);
-    const veiculo = await cadastrarVeiculo(
+    const { veiculo, avisoCrlv } = await cadastrarVeiculo(
       supabase,
       user.id,
       { ...input, placa: normalizada },
@@ -75,7 +75,7 @@ export async function PUT(
       acao: "cadastro",
       resultado: "sucesso",
     });
-    return NextResponse.json({ veiculo });
+    return NextResponse.json({ veiculo, avisoCrlv });
   } catch (err) {
     await registrarAuditoria(supabase, { userId: user.id, acao: "cadastro", resultado: "erro" });
     const message = err instanceof Error ? err.message : "erro desconhecido";
