@@ -5,6 +5,7 @@ import { contarUsoNoPeriodo, registrarUsoAvancada } from "@/lib/uso-avancada";
 import { getPlanoPorPriceId, PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { salvarAvancadaCache } from "@/lib/consulta-cache";
+import { consumirCreditoAvancada, getSaldoCreditosAvancada } from "@/lib/creditos-avancada";
 
 function inicioDoPeriodo(currentPeriodStart: string | null) {
   if (currentPeriodStart) return currentPeriodStart;
@@ -84,16 +85,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: result.errorMessage }, { status: 502 });
   }
 
-  await registrarUsoAvancada({ userId: user.id, placa, cobradaAvulsa: estourouCota });
+  let origem: "cota" | "credito" | "avulso" = "cota";
   if (estourouCota) {
-    await cobrarAvulso(subscription?.stripe_customer_id ?? null, placa);
+    const usouCredito = await consumirCreditoAvancada(user.id);
+    if (usouCredito) {
+      origem = "credito";
+    } else {
+      origem = "avulso";
+      await cobrarAvulso(subscription?.stripe_customer_id ?? null, placa);
+    }
   }
+
+  await registrarUsoAvancada({ userId: user.id, placa, origem });
   await salvarAvancadaCache(user.id, result.data.placa, result.data);
 
   return NextResponse.json({
     data: result.data,
     saldo: plano
-      ? { cota: plano.cota, usado: usoNoPeriodo + 1, cobradaAvulsa: estourouCota }
+      ? {
+          cota: plano.cota,
+          usado: usoNoPeriodo + 1,
+          origem,
+          creditos: await getSaldoCreditosAvancada(supabase, user.id),
+        }
       : null,
   });
 }

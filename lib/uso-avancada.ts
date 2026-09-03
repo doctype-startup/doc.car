@@ -15,18 +15,24 @@ export async function contarUsoNoPeriodo(
   return count ?? 0;
 }
 
+export type OrigemConsultaAvancada = "cota" | "credito" | "avulso";
+
 /** Só deve ser chamada em código de servidor de confiança (rota da API) —
  * usa a service role pra gravar o uso, já que não existe policy de insert
  * pro usuário direto (evita manipulação do próprio saldo pelo client). */
 export async function registrarUsoAvancada(params: {
   userId: string;
   placa: string;
-  cobradaAvulsa: boolean;
+  origem: OrigemConsultaAvancada;
 }) {
   const supabase = createAdminClient();
   await supabase.from("avancada_usage").insert({
     user_id: params.userId,
     placa: params.placa,
-    cobrada_avulsa: params.cobradaAvulsa,
+    origem: params.origem,
+    // Mantida por compatibilidade com o que já lia essa coluna antes da
+    // origem existir — "avulso" também cobre "credito" (nenhum dos dois é
+    // dentro da cota do plano).
+    cobrada_avulsa: params.origem !== "cota",
   });
 }

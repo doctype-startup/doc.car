@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { getPacotePorId } from "@/lib/plans";
+import { getPacotePorId, PacoteRecarga } from "@/lib/plans";
+
+function nomeDoPacote(pacote: PacoteRecarga) {
+  const tipoLabel = pacote.tipo === "avancada" ? "avançadas" : "simples";
+  if (pacote.creditos === 1) {
+    return `Consulta ${pacote.tipo === "avancada" ? "avançada" : "simples"} avulsa — DOC.CAR`;
+  }
+  return `Recarga de ${pacote.creditos} consultas ${tipoLabel} — DOC.CAR`;
+}
 
 export async function POST(request: NextRequest) {
   if (!isStripeConfigured) {
@@ -57,7 +65,7 @@ export async function POST(request: NextRequest) {
           currency: "brl",
           unit_amount: pacote.precoCentavos,
           product_data: {
-            name: `Recarga de ${pacote.creditos} consultas simples — DOC.CAR`,
+            name: nomeDoPacote(pacote),
           },
         },
         quantity: 1,

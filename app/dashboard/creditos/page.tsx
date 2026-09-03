@@ -8,6 +8,7 @@ import {
 } from "@/lib/plans";
 import { contarUsoSimplesNoPeriodo } from "@/lib/uso-simples";
 import { getRecargasAtivas, getSaldoCreditos } from "@/lib/creditos";
+import { getRecargasAtivasAvancada, getSaldoCreditosAvancada } from "@/lib/creditos-avancada";
 import Guardiao from "@/components/Guardiao";
 import SaldoConsultas from "@/components/SaldoConsultas";
 
@@ -47,9 +48,11 @@ export default async function CreditosPage({
   const plano = getPlanoPorPriceId(subscription?.price_id);
   const desde = inicioDoPeriodo(subscription?.current_period_start ?? null);
   const usoNoPeriodo = plano ? await contarUsoSimplesNoPeriodo(supabase, user.id, desde) : 0;
-  const [saldo, recargas] = await Promise.all([
+  const [saldo, recargas, saldoAvancada, recargasAvancada] = await Promise.all([
     getSaldoCreditos(supabase, user.id),
     getRecargasAtivas(supabase, user.id),
+    getSaldoCreditosAvancada(supabase, user.id),
+    getRecargasAtivasAvancada(supabase, user.id),
   ]);
 
   return (
@@ -80,15 +83,22 @@ export default async function CreditosPage({
         usoInicial={usoNoPeriodo}
         cotaInicial={plano?.cotaSimples ?? null}
         creditosInicial={saldo}
+        creditosAvancadaInicial={saldoAvancada}
       />
 
-      {recargas.length > 0 && (
+      {(recargas.length > 0 || recargasAvancada.length > 0) && (
         <div className="card" style={{ marginBottom: 24, marginTop: -8 }}>
           <span className="label">Validade das recargas</span>
           {recargas.map((recarga) => (
             <p key={recarga.id} style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
-              {recarga.creditosRestantes} crédito{recarga.creditosRestantes > 1 ? "s" : ""} —
-              válido até {new Date(recarga.expiraEm).toLocaleDateString("pt-BR")}
+              {recarga.creditosRestantes} crédito{recarga.creditosRestantes > 1 ? "s" : ""} de
+              consulta simples — válido até {new Date(recarga.expiraEm).toLocaleDateString("pt-BR")}
+            </p>
+          ))}
+          {recargasAvancada.map((recarga) => (
+            <p key={recarga.id} style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
+              {recarga.creditosRestantes} crédito{recarga.creditosRestantes > 1 ? "s" : ""} de
+              consulta avançada — válido até {new Date(recarga.expiraEm).toLocaleDateString("pt-BR")}
             </p>
           ))}
         </div>
@@ -103,15 +113,33 @@ export default async function CreditosPage({
           <h3>Consulta simples avulsa</h3>
           <div className="plano-preco">{currency.format(PRECO_AVULSO_SIMPLES_CENTAVOS / 100)}</div>
           <p className="plano-cota">
-            Cobrada por consulta quando a cota do mês e os créditos de recarga acabam.
+            Cobrada automaticamente quando a cota do mês e os créditos acabam — ou compre 1
+            crédito agora pra garantir esse preço.
           </p>
+          {isStripeConfigured && (
+            <form action="/api/checkout-creditos" method="POST">
+              <input type="hidden" name="pacote" value="avulso-simples" />
+              <button className="primary wide" type="submit">
+                Comprar recarga
+              </button>
+            </form>
+          )}
         </div>
         <div className="plano-card">
           <h3>Consulta avançada avulsa</h3>
           <div className="plano-preco">{currency.format(PRECO_AVULSO_CENTAVOS / 100)}</div>
           <p className="plano-cota">
-            Cobrada por consulta quando a cota mensal de consultas avançadas acaba.
+            Cobrada automaticamente quando a cota mensal acaba — ou compre 1 crédito agora pra
+            garantir esse preço.
           </p>
+          {isStripeConfigured && (
+            <form action="/api/checkout-creditos" method="POST">
+              <input type="hidden" name="pacote" value="avulso-avancada" />
+              <button className="primary wide" type="submit">
+                Comprar recarga
+              </button>
+            </form>
+          )}
         </div>
       </div>
 

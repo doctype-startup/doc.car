@@ -6,6 +6,7 @@ type Props = {
   usoInicial: number;
   cotaInicial: number | null;
   creditosInicial: number;
+  creditosAvancadaInicial: number;
 };
 
 const INTERVALO_MS = 15000;
@@ -14,10 +15,12 @@ export default function SaldoConsultas({
   usoInicial,
   cotaInicial,
   creditosInicial,
+  creditosAvancadaInicial,
 }: Props) {
   const [uso, setUso] = useState(usoInicial);
   const [cota, setCota] = useState(cotaInicial);
   const [creditos, setCreditos] = useState(creditosInicial);
+  const [creditosAvancada, setCreditosAvancada] = useState(creditosAvancadaInicial);
   const [atualizadoEm, setAtualizadoEm] = useState<Date | null>(null);
   const [atualizando, setAtualizando] = useState(false);
 
@@ -33,6 +36,7 @@ export default function SaldoConsultas({
           setUso(payload.usoNoPeriodo);
           setCota(payload.cotaSimples);
           setCreditos(payload.creditos);
+          setCreditosAvancada(payload.creditosAvancada);
           setAtualizadoEm(new Date());
         }
       } catch {
@@ -82,9 +86,15 @@ export default function SaldoConsultas({
         </div>
       )}
 
-      <div className="kv">
-        <span className="label">Créditos de recarga disponíveis</span>
-        <span className="value">{creditos}</span>
+      <div className="grid-2">
+        <div className="kv">
+          <span className="label">Créditos de consulta simples disponíveis</span>
+          <span className="value">{creditos}</span>
+        </div>
+        <div className="kv">
+          <span className="label">Créditos de consulta avançada disponíveis</span>
+          <span className="value">{creditosAvancada}</span>
+        </div>
       </div>
     </div>
   );

@@ -48,7 +48,9 @@ export const PLANOS: Plano[] = [
 
 export type PacoteRecarga = {
   id: string;
-  /** Créditos de consulta simples concedidos pelo pacote. */
+  /** A quais consultas o crédito se aplica. */
+  tipo: "simples" | "avancada";
+  /** Créditos concedidos pelo pacote. */
   creditos: number;
   /** Preço do pacote, em centavos. */
   precoCentavos: number;
@@ -60,13 +62,22 @@ export type PacoteRecarga = {
 export const CREDITOS_VALIDADE_MESES = 6;
 
 export const PACOTES_RECARGA: PacoteRecarga[] = [
-  { id: "recarga-50", creditos: 50, precoCentavos: 26500 },
-  { id: "recarga-100", creditos: 100, precoCentavos: 41000 },
+  { id: "recarga-50", tipo: "simples", creditos: 50, precoCentavos: 26500 },
+  { id: "recarga-100", tipo: "simples", creditos: 100, precoCentavos: 41000 },
+];
+
+/** Pacote de 1 crédito só — o botão "Comprar recarga" dos cards de
+ * "Consultas avulsas", pra quem quer garantir o preço avulso na hora em
+ * vez de deixar pra cobrança automática depois. Não aparecem na grade de
+ * "Pacotes de recarga" (só PACOTES_RECARGA é listado lá). */
+export const PACOTES_AVULSOS: PacoteRecarga[] = [
+  { id: "avulso-simples", tipo: "simples", creditos: 1, precoCentavos: PRECO_AVULSO_SIMPLES_CENTAVOS },
+  { id: "avulso-avancada", tipo: "avancada", creditos: 1, precoCentavos: PRECO_AVULSO_CENTAVOS },
 ];
 
 export function getPacotePorId(id: string | null | undefined): PacoteRecarga | undefined {
   if (!id) return undefined;
-  return PACOTES_RECARGA.find((pacote) => pacote.id === id);
+  return [...PACOTES_RECARGA, ...PACOTES_AVULSOS].find((pacote) => pacote.id === id);
 }
 
 export function getPlanoPorPriceId(priceId: string | null | undefined): Plano | undefined {
