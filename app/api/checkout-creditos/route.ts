@@ -45,45 +45,52 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(new URL("/assinar", request.url));
   }
 
-  const stripe = getStripe();
   const origin = request.nextUrl.origin;
 
-  // Pacote é pagamento único (não assinatura) — usa price_data direto na
-  // sessão em vez de exigir um Price pré-cadastrado no Stripe, pra não
-  // precisar de setup manual extra no dashboard do Stripe.
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    // Pacote é compra avulsa (não recorrente) — PIX funciona bem aqui,
-    // ao contrário da assinatura em /api/checkout, que precisa de um método
-    // reutilizável pra cobrar automaticamente todo mês.
-    payment_method_types: ["card", "pix"],
-    customer: subscription?.stripe_customer_id || undefined,
-    customer_email: subscription?.stripe_customer_id ? undefined : user.email,
-    line_items: [
-      {
-        price_data: {
-          currency: "brl",
-          unit_amount: pacote.precoCentavos,
-          product_data: {
-            name: nomeDoPacote(pacote),
+  let sessionUrl: string | null = null;
+  try {
+    const stripe = getStripe();
+    // Pacote é pagamento único (não assinatura) — usa price_data direto na
+    // sessão em vez de exigir um Price pré-cadastrado no Stripe, pra não
+    // precisar de setup manual extra no dashboard do Stripe.
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      // Pacote é compra avulsa (não recorrente) — PIX funciona bem aqui,
+      // ao contrário da assinatura em /api/checkout, que precisa de um método
+      // reutilizável pra cobrar automaticamente todo mês.
+      payment_method_types: ["card", "pix"],
+      customer: subscription?.stripe_customer_id || undefined,
+      customer_email: subscription?.stripe_customer_id ? undefined : user.email,
+      line_items: [
+        {
+          price_data: {
+            currency: "brl",
+            unit_amount: pacote.precoCentavos,
+            product_data: {
+              name: nomeDoPacote(pacote),
+            },
           },
+          quantity: 1,
         },
-        quantity: 1,
+      ],
+      success_url: `${origin}/dashboard/creditos?compra=sucesso`,
+      cancel_url: `${origin}/dashboard/creditos`,
+      client_reference_id: user.id,
+      metadata: {
+        supabase_user_id: user.id,
+        pacote_id: pacote.id,
+        creditos: String(pacote.creditos),
       },
-    ],
-    success_url: `${origin}/dashboard/creditos?compra=sucesso`,
-    cancel_url: `${origin}/dashboard/creditos`,
-    client_reference_id: user.id,
-    metadata: {
-      supabase_user_id: user.id,
-      pacote_id: pacote.id,
-      creditos: String(pacote.creditos),
-    },
-  });
+    });
+    sessionUrl = session.url;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    console.error(`[checkout-creditos] falha ao criar sessão (pacote=${pacote.id}): ${message}`);
+  }
 
-  if (!session.url) {
+  if (!sessionUrl) {
     return NextResponse.redirect(new URL("/dashboard/creditos?erro=1", request.url));
   }
 
-  return NextResponse.redirect(session.url, { status: 303 });
+  return NextResponse.redirect(sessionUrl, { status: 303 });
 }
