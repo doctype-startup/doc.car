@@ -25,7 +25,7 @@ export const PLANOS: Plano[] = [
     nome: "Essencial",
     cota: 20,
     cotaSimples: 100,
-    precoCentavos: 21700,
+    precoCentavos: 31700,
     priceId: process.env.STRIPE_PRICE_ESSENCIAL || "",
   },
   {
@@ -33,7 +33,7 @@ export const PLANOS: Plano[] = [
     nome: "Profissional",
     cota: 50,
     cotaSimples: 250,
-    precoCentavos: 44700,
+    precoCentavos: 54700,
     priceId: process.env.STRIPE_PRICE_PROFISSIONAL || "",
   },
   {
@@ -41,7 +41,7 @@ export const PLANOS: Plano[] = [
     nome: "Escritório",
     cota: 120,
     cotaSimples: 600,
-    precoCentavos: 86760,
+    precoCentavos: 96760,
     priceId: process.env.STRIPE_PRICE_ESCRITORIO || "",
   },
 ];
