@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlanoPorPriceId } from "@/lib/plans";
 import { contarUsoSimplesNoPeriodo } from "@/lib/uso-simples";
 import { getSaldoCreditos } from "@/lib/creditos";
+import { getSaldoCreditosAvancada } from "@/lib/creditos-avancada";
 
 function inicioDoPeriodo(currentPeriodStart: string | null) {
   if (currentPeriodStart) return currentPeriodStart;
@@ -33,11 +34,15 @@ export async function GET() {
   const plano = getPlanoPorPriceId(subscription?.price_id);
   const desde = inicioDoPeriodo(subscription?.current_period_start ?? null);
   const usoNoPeriodo = plano ? await contarUsoSimplesNoPeriodo(supabase, user.id, desde) : 0;
-  const creditos = await getSaldoCreditos(supabase, user.id);
+  const [creditos, creditosAvancada] = await Promise.all([
+    getSaldoCreditos(supabase, user.id),
+    getSaldoCreditosAvancada(supabase, user.id),
+  ]);
 
   return NextResponse.json({
     usoNoPeriodo,
     cotaSimples: plano?.cotaSimples ?? null,
     creditos,
+    creditosAvancada,
   });
 }

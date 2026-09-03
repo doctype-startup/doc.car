@@ -3,6 +3,11 @@ import type Stripe from "stripe";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { expirarCreditosPorCancelamento, registrarRecarga } from "@/lib/creditos";
+import {
+  expirarCreditosAvancadaPorCancelamento,
+  registrarRecargaAvancada,
+} from "@/lib/creditos-avancada";
+import { getPacotePorId } from "@/lib/plans";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
@@ -61,6 +66,7 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
   // Créditos de recarga não sobrevivem ao cancelamento da assinatura.
   if (subscription.status === "canceled") {
     await expirarCreditosPorCancelamento(userId);
+    await expirarCreditosAvancadaPorCancelamento(userId);
   }
 }
 
@@ -71,7 +77,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const pacoteId = session.metadata?.pacote_id;
   if (!userId || !pacoteId) return;
 
-  await registrarRecarga({
+  const pacote = getPacotePorId(pacoteId);
+  const registrar = pacote?.tipo === "avancada" ? registrarRecargaAvancada : registrarRecarga;
+
+  await registrar({
     userId,
     pacoteId,
     checkoutSessionId: session.id,
