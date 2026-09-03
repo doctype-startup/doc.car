@@ -80,8 +80,6 @@ export default async function CreditosPage({
         usoInicial={usoNoPeriodo}
         cotaInicial={plano?.cotaSimples ?? null}
         creditosInicial={saldo}
-        precoAvulsoFormatado={currency.format(PRECO_AVULSO_SIMPLES_CENTAVOS / 100)}
-        precoAvulsoAvancadaFormatado={currency.format(PRECO_AVULSO_CENTAVOS / 100)}
       />
 
       {recargas.length > 0 && (
@@ -96,12 +94,34 @@ export default async function CreditosPage({
         </div>
       )}
 
+      <h2 style={{ fontSize: 16, marginBottom: 12 }}>Consultas avulsas</h2>
+      <div
+        className="planos-grid"
+        style={{ gridTemplateColumns: "repeat(2, 1fr)", maxWidth: 700, marginBottom: 24 }}
+      >
+        <div className="plano-card">
+          <h3>Consulta simples avulsa</h3>
+          <div className="plano-preco">{currency.format(PRECO_AVULSO_SIMPLES_CENTAVOS / 100)}</div>
+          <p className="plano-cota">
+            Cobrada por consulta quando a cota do mês e os créditos de recarga acabam.
+          </p>
+        </div>
+        <div className="plano-card">
+          <h3>Consulta avançada avulsa</h3>
+          <div className="plano-preco">{currency.format(PRECO_AVULSO_CENTAVOS / 100)}</div>
+          <p className="plano-cota">
+            Cobrada por consulta quando a cota mensal de consultas avançadas acaba.
+          </p>
+        </div>
+      </div>
+
       {!isStripeConfigured ? (
         <div className="empty-state">
           <Guardiao pose="aguardando" mensagem="Recarga ainda não disponível — cobrança não configurada." />
         </div>
       ) : (
         <>
+          <h2 style={{ fontSize: 16, marginBottom: 12 }}>Pacotes de recarga</h2>
           <div className="planos-grid" style={{ gridTemplateColumns: "repeat(2, 1fr)", maxWidth: 700 }}>
             {PACOTES_RECARGA.map((pacote) => (
               <div key={pacote.id} className="plano-card">
