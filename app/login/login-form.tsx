@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Guardiao from "@/components/Guardiao";
+import PasswordField from "@/components/PasswordField";
 import { getPlanoPorId } from "@/lib/plans";
 
 type Tab = "login" | "signup";
@@ -151,13 +152,7 @@ export default function LoginSignupForm() {
             </label>
             <label className="field">
               <span>Senha</span>
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                required
-                minLength={1}
-              />
+              <PasswordField name="password" placeholder="••••••••" required minLength={1} />
             </label>
             <div style={{ textAlign: "right", marginTop: "-6px" }}>
               <a
@@ -203,23 +198,11 @@ export default function LoginSignupForm() {
             </label>
             <label className="field">
               <span>Senha</span>
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
+              <PasswordField name="password" placeholder="••••••••" required minLength={6} />
             </label>
             <label className="field">
               <span>Confirmar senha</span>
-              <input
-                type="password"
-                name="confirm"
-                placeholder="••••••••"
-                required
-                minLength={6}
-              />
+              <PasswordField name="confirm" placeholder="••••••••" required minLength={6} />
             </label>
             <button className="primary wide" type="submit" disabled={loading}>
               {loading ? "Criando conta..." : "Cadastrar"}

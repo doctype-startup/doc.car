@@ -144,22 +144,28 @@ export async function concederAcessoManual(userId: string, formData: FormData) {
 
 /** Cria um teste temporário pra qualquer e-mail — novo ou já cadastrado —
  * com cota fixa (PLANO_TESTE: 20 consultas simples + 10 avançadas) e prazo
- * definido pelo admin, sem passar pelo Stripe. Se o e-mail ainda não tiver
- * conta, envia um convite (o Supabase manda o e-mail de definição de senha;
- * o perfil é criado automaticamente pelo trigger de novo usuário). O teste
- * expira sozinho no prazo — ver app/api/cron/expirar-testes — mas pode ser
- * revogado a qualquer momento pelo botão "Revogar acesso" na tabela. */
+ * definido pelo admin, sem passar pelo Stripe. Se uma senha provisória for
+ * informada, o despachante já entra com ela na hora (avise por fora — não
+ * mandamos e-mail com a senha); sem senha, o e-mail novo recebe convite do
+ * Supabase pra definir a própria senha (perfil criado automaticamente pelo
+ * trigger de novo usuário). O teste expira sozinho no prazo — ver
+ * app/api/cron/expirar-testes — mas pode ser revogado a qualquer momento
+ * pelo botão "Revogar acesso" na tabela. */
 export async function criarTeste(formData: FormData) {
   await exigirAdmin();
 
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const dias = Number(formData.get("dias"));
+  const senha = String(formData.get("senha") || "").trim();
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error("Informe um e-mail válido.");
   }
   if (!Number.isFinite(dias) || dias <= 0) {
     throw new Error("Informe por quantos dias o teste deve durar.");
+  }
+  if (senha && senha.length < 6) {
+    throw new Error("A senha provisória precisa ter pelo menos 6 caracteres.");
   }
 
   const admin = createAdminClient();
@@ -173,13 +179,30 @@ export async function criarTeste(formData: FormData) {
   let userId = perfilExistente?.id as string | undefined;
 
   if (!userId) {
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
-    if (error || !data.user) {
-      throw new Error(
-        `Não foi possível convidar ${email}: ${error?.message ?? "erro desconhecido"}`
-      );
+    if (senha) {
+      // Senha provisória informada: cria a conta já com ela e confirma o
+      // e-mail na hora, pra não depender do convite por e-mail — a admin
+      // passa a senha direto pro despachante.
+      const { data, error } = await admin.auth.admin.createUser({
+        email,
+        password: senha,
+        email_confirm: true,
+      });
+      if (error || !data.user) {
+        throw new Error(
+          `Não foi possível criar a conta de ${email}: ${error?.message ?? "erro desconhecido"}`
+        );
+      }
+      userId = data.user.id;
+    } else {
+      const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
+      if (error || !data.user) {
+        throw new Error(
+          `Não foi possível convidar ${email}: ${error?.message ?? "erro desconhecido"}`
+        );
+      }
+      userId = data.user.id;
     }
-    userId = data.user.id;
   } else {
     const { data: existente } = await admin
       .from("subscriptions")
@@ -195,6 +218,13 @@ export async function criarTeste(formData: FormData) {
       throw new Error(
         "Esse e-mail já tem uma assinatura paga ativa no Stripe — revogue antes de conceder um teste."
       );
+    }
+
+    if (senha) {
+      const { error } = await admin.auth.admin.updateUserById(userId, { password: senha });
+      if (error) {
+        throw new Error(`Não foi possível trocar a senha de ${email}: ${error.message}`);
+      }
     }
   }
 

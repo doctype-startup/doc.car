@@ -7,6 +7,7 @@ import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { revogarAcesso, revogarEExcluirDados, concederAcessoManual, criarTeste } from "./actions";
 import ConfirmSubmitButton from "./confirm-submit-button";
+import PasswordField from "@/components/PasswordField";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dataHora = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -193,9 +194,8 @@ export default async function AdminPage() {
           <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
             Cria um teste temporário pra qualquer e-mail, novo ou já cadastrado — sem cobrança,
             com {PLANO_TESTE.cotaSimples} consultas básicas e {PLANO_TESTE.cota} consultas
-            completas, pelo número de dias que você definir. Se o e-mail ainda não tiver conta,
-            um convite é enviado automaticamente. O teste expira sozinho no prazo, mas você pode
-            revogar a qualquer momento na tabela abaixo.
+            completas, pelo número de dias que você definir. O teste expira sozinho no prazo, mas
+            você pode revogar a qualquer momento na tabela abaixo.
           </p>
           <form
             action={criarTeste}
@@ -207,6 +207,13 @@ export default async function AdminPage() {
               placeholder="email@exemplo.com"
               required
               style={{ fontSize: 13, flex: "1 1 220px" }}
+            />
+            <PasswordField
+              name="senha"
+              placeholder="Senha provisória (opcional)"
+              minLength={6}
+              style={{ fontSize: 13 }}
+              wrapperStyle={{ flex: "1 1 180px" }}
             />
             <input
               type="number"
@@ -221,6 +228,11 @@ export default async function AdminPage() {
               Criar teste
             </button>
           </form>
+          <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>
+            Preenchendo a senha, o despachante já consegue entrar com ela na hora — combine por
+            fora (telefone, WhatsApp), ela não é enviada por e-mail. Deixando em branco, quem
+            ainda não tem conta recebe um convite do Supabase pra criar a própria senha.
+          </p>
         </div>
 
         <div className="card" style={{ overflowX: "auto" }}>
