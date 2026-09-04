@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { getPlanoPorId } from "@/lib/plans";
+import { getPlanoPorId, PLANO_TESTE } from "@/lib/plans";
 import { expirarCreditosPorCancelamento } from "@/lib/creditos";
 
 async function exigirAdmin() {
@@ -135,6 +135,83 @@ export async function concederAcessoManual(userId: string, formData: FormData) {
       current_period_start: new Date().toISOString(),
       current_period_end: null,
       updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" }
+  );
+
+  revalidatePath("/admin");
+}
+
+/** Cria um teste temporário pra qualquer e-mail — novo ou já cadastrado —
+ * com cota fixa (PLANO_TESTE: 20 consultas simples + 10 avançadas) e prazo
+ * definido pelo admin, sem passar pelo Stripe. Se o e-mail ainda não tiver
+ * conta, envia um convite (o Supabase manda o e-mail de definição de senha;
+ * o perfil é criado automaticamente pelo trigger de novo usuário). O teste
+ * expira sozinho no prazo — ver app/api/cron/expirar-testes — mas pode ser
+ * revogado a qualquer momento pelo botão "Revogar acesso" na tabela. */
+export async function criarTeste(formData: FormData) {
+  await exigirAdmin();
+
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const dias = Number(formData.get("dias"));
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Informe um e-mail válido.");
+  }
+  if (!Number.isFinite(dias) || dias <= 0) {
+    throw new Error("Informe por quantos dias o teste deve durar.");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: perfilExistente } = await admin
+    .from("profiles")
+    .select("id")
+    .ilike("email", email)
+    .maybeSingle();
+
+  let userId = perfilExistente?.id as string | undefined;
+
+  if (!userId) {
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
+    if (error || !data.user) {
+      throw new Error(
+        `Não foi possível convidar ${email}: ${error?.message ?? "erro desconhecido"}`
+      );
+    }
+    userId = data.user.id;
+  } else {
+    const { data: existente } = await admin
+      .from("subscriptions")
+      .select("stripe_subscription_id, status")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const temAssinaturaPagaAtiva =
+      existente?.stripe_subscription_id &&
+      (existente.status === "active" || existente.status === "trialing");
+
+    if (temAssinaturaPagaAtiva) {
+      throw new Error(
+        "Esse e-mail já tem uma assinatura paga ativa no Stripe — revogue antes de conceder um teste."
+      );
+    }
+  }
+
+  const agora = new Date();
+  const fim = new Date(agora);
+  fim.setDate(fim.getDate() + dias);
+
+  await admin.from("subscriptions").upsert(
+    {
+      user_id: userId,
+      status: "trialing",
+      price_id: PLANO_TESTE.priceId,
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      current_period_start: agora.toISOString(),
+      current_period_end: fim.toISOString(),
+      updated_at: agora.toISOString(),
     },
     { onConflict: "user_id" }
   );
