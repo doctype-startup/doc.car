@@ -23,6 +23,8 @@ Abra [http://localhost:3000](http://localhost:3000).
 - `app/api/stripe/webhook` — recebe eventos do Stripe e atualiza a assinatura no banco
 - `app/api/veiculo` — consulta dados reais de veículo por placa (exige login + assinatura ativa)
 - `app/api/consulta-avancada` — consulta avançada real de multas/roubo-furto/Renajud, sob demanda (exige login + assinatura ativa)
+- `app/admin` — painel administrativo (exige `is_admin`); inclui "Criar acesso de teste", que convida um e-mail (novo ou já cadastrado) com cota fixa e prazo definido na hora, sem cobrança
+- `app/api/cron/expirar-testes` — roda 1x/dia (agendado em `vercel.json`) e revoga sozinho os testes cujo prazo já passou
 - `lib/vehicle.ts` — camada de dados **mock** (débitos — ainda simulado, exibido junto com o dado real)
 - `lib/dados-veiculo.ts` — client do provedor de dados veiculares ativo (veja "Dados reais de veículo" abaixo)
 - `lib/dados-avancados.ts` — client do provedor de consulta avançada (veja "Consulta avançada" abaixo)

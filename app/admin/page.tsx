@@ -2,10 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPlanoPorPriceId, PLANOS } from "@/lib/plans";
+import { getPlanoPorPriceId, PLANOS, PLANO_TESTE } from "@/lib/plans";
 import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { revogarAcesso, revogarEExcluirDados, concederAcessoManual } from "./actions";
+import { revogarAcesso, revogarEExcluirDados, concederAcessoManual, criarTeste } from "./actions";
 import ConfirmSubmitButton from "./confirm-submit-button";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -188,6 +188,41 @@ export default async function AdminPage() {
           </div>
         </div>
 
+        <div className="card" style={{ padding: 16, marginBottom: 24 }}>
+          <h3 style={{ marginBottom: 4, fontSize: 15 }}>Criar acesso de teste</h3>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+            Cria um teste temporário pra qualquer e-mail, novo ou já cadastrado — sem cobrança,
+            com {PLANO_TESTE.cotaSimples} consultas básicas e {PLANO_TESTE.cota} consultas
+            completas, pelo número de dias que você definir. Se o e-mail ainda não tiver conta,
+            um convite é enviado automaticamente. O teste expira sozinho no prazo, mas você pode
+            revogar a qualquer momento na tabela abaixo.
+          </p>
+          <form
+            action={criarTeste}
+            style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}
+          >
+            <input
+              type="email"
+              name="email"
+              placeholder="email@exemplo.com"
+              required
+              style={{ fontSize: 13, flex: "1 1 220px" }}
+            />
+            <input
+              type="number"
+              name="dias"
+              placeholder="Dias"
+              min={1}
+              defaultValue={7}
+              required
+              style={{ fontSize: 13, width: 90 }}
+            />
+            <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
+              Criar teste
+            </button>
+          </form>
+        </div>
+
         <div className="card" style={{ overflowX: "auto" }}>
           <table className="admin-table">
             <thead>
@@ -258,7 +293,14 @@ export default async function AdminPage() {
                     <td>{plano?.nome ?? "—"}</td>
                     <td>
                       {ehManual ? (
-                        <span className="badge neutral">Acesso manual (teste)</span>
+                        <>
+                          <span className="badge neutral">Acesso manual (teste)</span>
+                          {sub?.current_period_end && (
+                            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                              até {dataCurta.format(new Date(sub.current_period_end))}
+                            </div>
+                          )}
+                        </>
                       ) : status ? (
                         <span className={`badge ${status.badge}`}>{status.texto}</span>
                       ) : (

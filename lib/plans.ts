@@ -80,8 +80,23 @@ export function getPacotePorId(id: string | null | undefined): PacoteRecarga | u
   return [...PACOTES_RECARGA, ...PACOTES_AVULSOS].find((pacote) => pacote.id === id);
 }
 
+/** Plano usado só nos testes concedidos manualmente pelo admin (ver
+ * app/admin/actions.ts → criarTeste). Nunca aparece em /assinar, /login ou
+ * no checkout — não faz parte de PLANOS, então getPlanoPorId (usado pelo
+ * checkout) nunca o resolve. getPlanoPorPriceId reconhece o priceId dele
+ * porque só o próprio backend grava esse valor numa assinatura. */
+export const PLANO_TESTE: Plano = {
+  id: "trial",
+  nome: "Teste",
+  cota: 10,
+  cotaSimples: 20,
+  precoCentavos: 0,
+  priceId: "trial",
+};
+
 export function getPlanoPorPriceId(priceId: string | null | undefined): Plano | undefined {
   if (!priceId) return undefined;
+  if (priceId === PLANO_TESTE.priceId) return PLANO_TESTE;
   return PLANOS.find((plano) => plano.priceId === priceId);
 }
 
