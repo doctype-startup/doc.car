@@ -7,6 +7,7 @@ import {
   getPlanoPorPriceId,
 } from "@/lib/plans";
 import { contarUsoSimplesNoPeriodo } from "@/lib/uso-simples";
+import { contarUsoNoPeriodo as contarUsoAvancadaNoPeriodo } from "@/lib/uso-avancada";
 import { getRecargasAtivas, getSaldoCreditos } from "@/lib/creditos";
 import { getRecargasAtivasAvancada, getSaldoCreditosAvancada } from "@/lib/creditos-avancada";
 import Guardiao from "@/components/Guardiao";
@@ -47,13 +48,15 @@ export default async function CreditosPage({
 
   const plano = getPlanoPorPriceId(subscription?.price_id);
   const desde = inicioDoPeriodo(subscription?.current_period_start ?? null);
-  const usoNoPeriodo = plano ? await contarUsoSimplesNoPeriodo(supabase, user.id, desde) : 0;
-  const [saldo, recargas, saldoAvancada, recargasAvancada] = await Promise.all([
-    getSaldoCreditos(supabase, user.id),
-    getRecargasAtivas(supabase, user.id),
-    getSaldoCreditosAvancada(supabase, user.id),
-    getRecargasAtivasAvancada(supabase, user.id),
-  ]);
+  const [usoNoPeriodo, usoAvancadaNoPeriodo, saldo, recargas, saldoAvancada, recargasAvancada] =
+    await Promise.all([
+      plano ? contarUsoSimplesNoPeriodo(supabase, user.id, desde) : 0,
+      plano ? contarUsoAvancadaNoPeriodo(supabase, user.id, desde) : 0,
+      getSaldoCreditos(supabase, user.id),
+      getRecargasAtivas(supabase, user.id),
+      getSaldoCreditosAvancada(supabase, user.id),
+      getRecargasAtivasAvancada(supabase, user.id),
+    ]);
 
   return (
     <>
@@ -82,6 +85,8 @@ export default async function CreditosPage({
       <SaldoConsultas
         usoInicial={usoNoPeriodo}
         cotaInicial={plano?.cotaSimples ?? null}
+        usoAvancadaInicial={usoAvancadaNoPeriodo}
+        cotaAvancadaInicial={plano?.cota ?? null}
         creditosInicial={saldo}
         creditosAvancadaInicial={saldoAvancada}
       />

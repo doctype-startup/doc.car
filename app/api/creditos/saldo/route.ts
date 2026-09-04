@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPlanoPorPriceId } from "@/lib/plans";
 import { contarUsoSimplesNoPeriodo } from "@/lib/uso-simples";
+import { contarUsoNoPeriodo as contarUsoAvancadaNoPeriodo } from "@/lib/uso-avancada";
 import { getSaldoCreditos } from "@/lib/creditos";
 import { getSaldoCreditosAvancada } from "@/lib/creditos-avancada";
 
@@ -33,8 +34,9 @@ export async function GET() {
 
   const plano = getPlanoPorPriceId(subscription?.price_id);
   const desde = inicioDoPeriodo(subscription?.current_period_start ?? null);
-  const usoNoPeriodo = plano ? await contarUsoSimplesNoPeriodo(supabase, user.id, desde) : 0;
-  const [creditos, creditosAvancada] = await Promise.all([
+  const [usoNoPeriodo, usoAvancadaNoPeriodo, creditos, creditosAvancada] = await Promise.all([
+    plano ? contarUsoSimplesNoPeriodo(supabase, user.id, desde) : 0,
+    plano ? contarUsoAvancadaNoPeriodo(supabase, user.id, desde) : 0,
     getSaldoCreditos(supabase, user.id),
     getSaldoCreditosAvancada(supabase, user.id),
   ]);
@@ -42,6 +44,8 @@ export async function GET() {
   return NextResponse.json({
     usoNoPeriodo,
     cotaSimples: plano?.cotaSimples ?? null,
+    usoAvancadaNoPeriodo,
+    cotaAvancada: plano?.cota ?? null,
     creditos,
     creditosAvancada,
   });
