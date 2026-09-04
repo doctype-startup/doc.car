@@ -7,6 +7,7 @@ import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { revogarAcesso, revogarEExcluirDados, concederAcessoManual, criarTeste } from "./actions";
 import ConfirmSubmitButton from "./confirm-submit-button";
+import PasswordField from "@/components/PasswordField";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dataHora = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -207,12 +208,12 @@ export default async function AdminPage() {
               required
               style={{ fontSize: 13, flex: "1 1 220px" }}
             />
-            <input
-              type="text"
+            <PasswordField
               name="senha"
               placeholder="Senha provisória (opcional)"
               minLength={6}
-              style={{ fontSize: 13, flex: "1 1 180px" }}
+              style={{ fontSize: 13 }}
+              wrapperStyle={{ flex: "1 1 180px" }}
             />
             <input
               type="number"
