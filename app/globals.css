@@ -707,10 +707,43 @@ button.wide {
   background: #22c55e;
   flex-shrink: 0;
   transition: background 0.2s ease;
+  animation: pulso-status-verde 1.8s ease-out infinite;
 }
 
 .status-dot.atualizando {
   background: var(--doctype-orange);
+  animation: pulso-status-laranja 1.8s ease-out infinite;
+}
+
+.status-dot.offline {
+  background: var(--danger);
+  animation: pulso-status-vermelho 1.4s ease-out infinite;
+}
+
+@keyframes pulso-status-verde {
+  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+@keyframes pulso-status-laranja {
+  0% { box-shadow: 0 0 0 0 rgba(255, 100, 0, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(255, 100, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 100, 0, 0); }
+}
+
+@keyframes pulso-status-vermelho {
+  0% { box-shadow: 0 0 0 0 rgba(214, 60, 60, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(214, 60, 60, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(214, 60, 60, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot,
+  .guardiao-helper-toggle.monitor-online,
+  .guardiao-helper-toggle.monitor-offline {
+    animation: none !important;
+  }
 }
 
 .saldo-barra-label {
@@ -1067,6 +1100,76 @@ button.wide {
 .guardiao-helper-toggle .guardiao {
   width: 44px;
   height: 44px;
+}
+
+/* Monitor ao vivo do provedor de dados — luz piscando ao redor do botão,
+ * igual ao padrão do Doc Approve: verde = tudo funcionando, vermelha =
+ * provedor fora do ar. */
+.guardiao-helper-toggle.monitor-online {
+  animation: pulso-monitor-verde 2.2s ease-out infinite;
+}
+
+.guardiao-helper-toggle.monitor-offline {
+  animation: pulso-monitor-vermelho 1.4s ease-out infinite;
+}
+
+@keyframes pulso-monitor-verde {
+  0% { box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35), 0 0 0 0 rgba(34, 197, 94, 0.5); }
+  70% { box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35), 0 0 0 10px rgba(34, 197, 94, 0); }
+  100% { box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35), 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+@keyframes pulso-monitor-vermelho {
+  0% { box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35), 0 0 0 0 rgba(214, 60, 60, 0.55); }
+  70% { box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35), 0 0 0 10px rgba(214, 60, 60, 0); }
+  100% { box-shadow: 0 10px 24px rgba(6, 19, 63, 0.35), 0 0 0 0 rgba(214, 60, 60, 0); }
+}
+
+.guardiao-monitor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.guardiao-monitor-card.offline {
+  background: rgba(214, 60, 60, 0.08);
+}
+
+.guardiao-monitor-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #16a34a;
+}
+
+.guardiao-monitor-card.offline .guardiao-monitor-eyebrow {
+  color: var(--danger);
+}
+
+.guardiao-monitor-titulo {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--doctype-navy);
+}
+
+.guardiao-monitor-desc {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.guardiao-monitor-fonte {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
 }
 
 .guardiao-helper-panel {
