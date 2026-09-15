@@ -45,29 +45,41 @@ export async function getSaldoCreditos(
 
 /** Consome 1 crédito da recarga mais próxima de expirar. Retorna `true` se
  * havia crédito disponível e foi consumido, `false` caso contrário. Só deve
- * ser chamada em código de servidor de confiança — usa a service role. */
+ * ser chamada em código de servidor de confiança — usa a service role.
+ *
+ * O update é condicionado ao valor de creditos_restantes lido (compare-and-
+ * swap): se duas requisições concorrentes (ex: duplo clique, duas abas)
+ * lerem o mesmo saldo e tentarem consumir o último crédito ao mesmo tempo,
+ * só uma delas bate a condição e consome de verdade — a outra tenta de novo
+ * com o saldo atualizado, em vez de as duas debitarem o mesmo crédito. */
 export async function consumirCredito(userId: string): Promise<boolean> {
   const admin = createAdminClient();
 
-  const { data } = await admin
-    .from("recargas_simples")
-    .select("id, creditos_restantes")
-    .eq("user_id", userId)
-    .gt("creditos_restantes", 0)
-    .gt("expira_em", new Date().toISOString())
-    .order("expira_em", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    const { data } = await admin
+      .from("recargas_simples")
+      .select("id, creditos_restantes")
+      .eq("user_id", userId)
+      .gt("creditos_restantes", 0)
+      .gt("expira_em", new Date().toISOString())
+      .order("expira_em", { ascending: true })
+      .limit(1)
+      .maybeSingle();
 
-  if (!data) return false;
+    if (!data) return false;
 
-  const { error } = await admin
-    .from("recargas_simples")
-    .update({ creditos_restantes: data.creditos_restantes - 1 })
-    .eq("id", data.id)
-    .gt("creditos_restantes", 0);
+    const { data: atualizado } = await admin
+      .from("recargas_simples")
+      .update({ creditos_restantes: data.creditos_restantes - 1 })
+      .eq("id", data.id)
+      .eq("creditos_restantes", data.creditos_restantes)
+      .select("id")
+      .maybeSingle();
 
-  return !error;
+    if (atualizado) return true;
+  }
+
+  return false;
 }
 
 /** Registra uma recarga comprada (chamada pelo webhook do Stripe, após
