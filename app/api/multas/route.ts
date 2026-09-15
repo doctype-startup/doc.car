@@ -42,9 +42,12 @@ export async function GET(request: NextRequest) {
 
   const result = await consultarMultasAntt(tipoFiscalizacao, placa);
 
-  console.log(
-    `[infosimples-antt-multas] placa=${placa} ok=${result.ok} resposta=${JSON.stringify(result.data).slice(0, 2000)}`
-  );
+  // Ao contrário de lib/dados-veiculo.ts e lib/dados-avancados.ts, essa
+  // integração ainda não tem uma função de sanitização — result.data é o
+  // payload bruto do Infosimples/SIFAMA, que pode trazer dado pessoal do
+  // motorista/empresa vinculado ao login ANTT. Por isso nunca loga o corpo
+  // da resposta (só ok/placa, que não são dado pessoal de terceiro).
+  console.log(`[infosimples-antt-multas] placa=${placa} ok=${result.ok}`);
 
   if (!result.ok) {
     return NextResponse.json({ error: result.errorMessage }, { status: 502 });

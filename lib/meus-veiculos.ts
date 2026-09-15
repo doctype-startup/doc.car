@@ -148,10 +148,14 @@ export async function obterVeiculo(
 export async function excluirVeiculo(
   supabase: SupabaseClient,
   userId: string,
-  placa: string
+  placa: string,
+  /** Passe o veículo já buscado pelo chamador (ex: pra registrar auditoria)
+   * pra evitar um segundo SELECT idêntico aqui dentro. Se omitido, busca
+   * normalmente. */
+  veiculoConhecido?: MeuVeiculo | null
 ): Promise<void> {
   const normalizada = normalizarPlaca(placa);
-  const veiculo = await obterVeiculo(supabase, userId, placa);
+  const veiculo = veiculoConhecido !== undefined ? veiculoConhecido : await obterVeiculo(supabase, userId, placa);
 
   if (veiculo?.crlvDisponivel) {
     await supabase.storage.from("crlv-pdfs").remove([`${userId}/${normalizada}.pdf`]);

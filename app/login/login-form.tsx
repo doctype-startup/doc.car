@@ -26,6 +26,7 @@ export default function LoginSignupForm() {
   const router = useRouter();
   const supabase = createClient();
   const searchParams = useSearchParams();
+  const emailParam = searchParams.get("email") || "";
   const planoParam = searchParams.get("plano");
   const planoEscolhido = getPlanoPorId(planoParam);
   const destinoAposAuth = planoEscolhido ? `/assinar?plano=${planoEscolhido.id}` : "/dashboard";
@@ -147,6 +148,7 @@ export default function LoginSignupForm() {
                 type="email"
                 name="email"
                 placeholder="voce@despachante.com.br"
+                defaultValue={emailParam}
                 required
               />
             </label>
@@ -193,6 +195,7 @@ export default function LoginSignupForm() {
                 type="email"
                 name="email"
                 placeholder="voce@despachante.com.br"
+                defaultValue={emailParam}
                 required
               />
             </label>

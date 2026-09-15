@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { normalizarPlaca, obterVeiculo, registrarAuditoria } from "@/lib/meus-veiculos";
+import { exigirAcessoAtivo } from "@/lib/api-acesso";
 
 export async function GET(
   request: NextRequest,
@@ -8,14 +8,9 @@ export async function GET(
 ) {
   const { placa } = await params;
   const visualizar = request.nextUrl.searchParams.get("visualizar") === "1";
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "não autenticado" }, { status: 401 });
-  }
+  const acesso = await exigirAcessoAtivo();
+  if ("erro" in acesso) return acesso.erro;
+  const { supabase, userId } = acesso;
 
   let normalizada: string;
   try {
@@ -24,18 +19,18 @@ export async function GET(
     return NextResponse.json({ error: "placa inválida" }, { status: 400 });
   }
 
-  const veiculo = await obterVeiculo(supabase, user.id, normalizada);
+  const veiculo = await obterVeiculo(supabase, userId, normalizada);
   if (!veiculo?.crlvDisponivel) {
     return NextResponse.json({ error: "CRLV não encontrado" }, { status: 404 });
   }
 
   const { data: pdf, error } = await supabase.storage
     .from("crlv-pdfs")
-    .download(`${user.id}/${normalizada}.pdf`);
+    .download(`${userId}/${normalizada}.pdf`);
 
   if (error || !pdf) {
     await registrarAuditoria(supabase, {
-      userId: user.id,
+      userId,
       veiculoId: veiculo.id,
       acao: "download_crlv",
       resultado: "erro",
@@ -44,7 +39,7 @@ export async function GET(
   }
 
   await registrarAuditoria(supabase, {
-    userId: user.id,
+    userId,
     veiculoId: veiculo.id,
     acao: "download_crlv",
     resultado: "sucesso",
