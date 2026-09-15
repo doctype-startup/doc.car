@@ -91,7 +91,15 @@ export function formatCnpj(cnpj: string) {
 
 export type ConsultaVeiculoResult =
   | { ok: true; data: VeiculoReal }
-  | { ok: false; errorMessage: string };
+  | {
+      ok: false;
+      /** "http" = o provedor não respondeu corretamente (fora do ar,
+       * timeout, erro) — sinal real de indisponibilidade. "nao_encontrado"
+       * = o provedor respondeu normalmente, só não tem essa placa — não é
+       * indisponibilidade, é resultado normal de uma consulta. */
+      motivo: "http" | "nao_encontrado";
+      errorMessage: string;
+    };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sanitizeVeiculo(raw: any): VeiculoReal {
@@ -190,7 +198,7 @@ export async function consultarVeiculoPorPlaca(
   placa: string
 ): Promise<ConsultaVeiculoResult> {
   if (!token) {
-    return { ok: false, errorMessage: "PLACA_API_TOKEN não configurado" };
+    return { ok: false, motivo: "http", errorMessage: "PLACA_API_TOKEN não configurado" };
   }
 
   const url = new URL(BASE_URL);
@@ -202,10 +210,18 @@ export async function consultarVeiculoPorPlaca(
   const json = await response.json().catch(() => null);
 
   if (!response.ok) {
-    return { ok: false, errorMessage: `Consulta falhou (HTTP ${response.status}).` };
+    return {
+      ok: false,
+      motivo: "http",
+      errorMessage: `Consulta falhou (HTTP ${response.status}).`,
+    };
   }
   if (json?.status !== "sucesso" || !json?.dados?.encontrado) {
-    return { ok: false, errorMessage: "Veículo não encontrado para essa placa." };
+    return {
+      ok: false,
+      motivo: "nao_encontrado",
+      errorMessage: "Veículo não encontrado para essa placa.",
+    };
   }
 
   // A partir daqui só trafega o resultado já filtrado por sanitizeVeiculo —
