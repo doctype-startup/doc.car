@@ -6,6 +6,7 @@ import { consumirCredito, getSaldoCreditos } from "@/lib/creditos";
 import { getPlanoPorPriceId, PRECO_AVULSO_SIMPLES_CENTAVOS } from "@/lib/plans";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { salvarVeiculoCache } from "@/lib/consulta-cache";
+import { registrarStatusProvedor } from "@/lib/status-provedor";
 
 function inicioDoPeriodo(currentPeriodStart: string | null) {
   if (currentPeriodStart) return currentPeriodStart;
@@ -80,6 +81,12 @@ export async function GET(request: NextRequest) {
   const result = await consultarVeiculoPorPlaca(placa);
 
   console.log(`[dados-veiculo] placa=${placa} ok=${result.ok}`);
+
+  // Grava o status real do provedor a partir dessa consulta de verdade —
+  // "não encontrado" é resultado normal (o provedor respondeu certinho, só
+  // não tem essa placa), então não conta como provedor fora do ar; só uma
+  // falha de verdade (motivo "http") marca indisponibilidade.
+  await registrarStatusProvedor(result.ok || result.motivo !== "http");
 
   if (!result.ok) {
     return NextResponse.json({ error: result.errorMessage }, { status: 502 });
