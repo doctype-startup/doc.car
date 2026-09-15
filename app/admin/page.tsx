@@ -8,6 +8,7 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { revogarAcesso, revogarEExcluirDados, concederAcessoManual, criarTeste } from "./actions";
 import ConfirmSubmitButton from "./confirm-submit-button";
 import WhatsappAcessoButton from "./whatsapp-acesso-button";
+import CopiarLinkButton from "./copiar-link-button";
 import PasswordField from "@/components/PasswordField";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -325,6 +326,7 @@ export default async function AdminPage() {
                       {temAcesso ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
+                          <CopiarLinkButton email={despachante.email} />
                           <form action={revogarAcesso.bind(null, despachante.id)}>
                             <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
                               Revogar acesso
@@ -342,6 +344,7 @@ export default async function AdminPage() {
                       ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
+                          <CopiarLinkButton email={despachante.email} />
                           <form
                             action={concederAcessoManual.bind(null, despachante.id)}
                             style={{ display: "flex", gap: 6, alignItems: "center" }}
