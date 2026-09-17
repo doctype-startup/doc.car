@@ -133,7 +133,16 @@ Recurso pago à parte (R$65,00 por emissão, Stripe Checkout avulso), separado d
 3. Fluxo: o despachante informa placa + UF em `/dashboard/documentos` → `app/api/checkout-crlv` cria uma sessão de Stripe Checkout avulsa (preço inline, `PRECO_CRLV_CENTAVOS` em `lib/crlv.ts`, sem exigir Price cadastrado) → só depois do pagamento confirmado (`checkout.session.completed`) o webhook chama a API Brasil e salva o resultado em `documentos_crlv` (migração `0011_documentos_crlv.sql`). O PDF retornado (base64) é decodificado e salvo no mesmo bucket privado `crlv-pdfs` já usado por "Meus Veículos" (pasta `${user_id}/emissoes/${id}.pdf`), reaproveitando a policy de RLS existente — nenhum bucket novo é necessário.
 4. **Dados pessoais**: diferente dos outros provedores, aqui o **CPF do proprietário é liberado** — decisão deliberada da DOCTYPE, porque o documento emitido é o próprio CRLV-e oficial (o CPF já vem impresso nele; não há como emitir o documento oficial sem ele). Não estenda essa exceção pra nenhum outro fluxo sem confirmar de novo.
 
-### 7. Configurar na Vercel
+### 7. Logística (consulta RNTRC)
+
+Consulta a situação de um transportador (RNTRC/ANTT) — útil pra despachante que atende frota/transporte de carga, não só veículo de passeio. Mesmo provedor/token do CRLV-e (`APIBRASIL_TOKEN`), endpoint diferente.
+
+1. `lib/rntrc.ts` chama `POST https://gateway.apibrasil.io/api/v2/consulta/api-rntrc/credits` com `{"tipo":"search","homolog":false,"filters":{"cpf_cnpj":"..."} ou {"rntrc":"..."},"pagination":{"page":1,"page_size":1}}`.
+2. **Três formas de busca** em `/dashboard/logistica`: CPF/CNPJ direto, número do RNTRC direto, ou **placa do caminhão** — nesse último caso, `app/api/logistica/rntrc` primeiro resolve a placa pro CNPJ do proprietário (via `consultarVeiculoPorPlaca`, mesma função da consulta simples) e só então busca o RNTRC desse CNPJ. A API do RNTRC indexa por transportador, não por veículo — não existe filtro por placa nela. Só funciona quando o dono é pessoa jurídica: o app nunca expõe CPF de proprietário pessoa física (LGPD), então não há CPF disponível aqui pra buscar quando o dono é pessoa física.
+3. **Cobrança**: por pedido da cliente, reaproveita a mesma cota/saldo da "Consulta avançada" (multas/roubo-furto/Renajud) — mesma lógica de `app/api/consulta-avancada` (cota do plano → crédito de recarga → avulso cobrado no Stripe), gravando o uso em `avancada_usage` (coluna `placa` guarda o CPF/CNPJ ou RNTRC consultado nesse caso, não necessariamente uma placa de veículo).
+4. Não precisa de migração nova — reaproveita as tabelas já existentes de consulta avançada.
+
+### 8. Configurar na Vercel
 
 Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
 
