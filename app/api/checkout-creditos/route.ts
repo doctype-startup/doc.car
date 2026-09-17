@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { criarSessaoCheckout, isStripeConfigured } from "@/lib/stripe";
 import { getPacotePorId, PacoteRecarga } from "@/lib/plans";
 
 function nomeDoPacote(pacote: PacoteRecarga) {
@@ -49,11 +49,10 @@ export async function POST(request: NextRequest) {
 
   let sessionUrl: string | null = null;
   try {
-    const stripe = getStripe();
     // Pacote é pagamento único (não assinatura) — usa price_data direto na
     // sessão em vez de exigir um Price pré-cadastrado no Stripe, pra não
     // precisar de setup manual extra no dashboard do Stripe.
-    const session = await stripe.checkout.sessions.create({
+    const session = await criarSessaoCheckout({
       mode: "payment",
       // Pacote é compra avulsa (não recorrente) — sem payment_method_types,
       // o Checkout usa automaticamente os métodos habilitados na conta
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
         pacote_id: pacote.id,
         creditos: String(pacote.creditos),
       },
-    });
+    }, user.email);
     sessionUrl = session.url;
   } catch (err) {
     const message = err instanceof Error ? err.message : "erro desconhecido";
