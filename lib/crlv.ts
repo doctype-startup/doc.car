@@ -36,9 +36,14 @@ export async function emitirCrlv(placa: string, uf: string): Promise<EmissaoCrlv
     console.error(
       `[crlv] falha ao emitir (placa=${placa}, uf=${uf}, http=${response.status}): ${JSON.stringify(json)}`
     );
+    // json.data.detail costuma ser bem mais específico que json.message (ex:
+    // "uf SC não suportada para consulta CRLV." vs a mensagem genérica de
+    // "não foi possível obter resposta válida do fornecedor") — prioriza ele
+    // quando existir.
     return {
       ok: false,
-      errorMessage: json?.message || `Emissão falhou (HTTP ${response.status}).`,
+      errorMessage:
+        json?.data?.detail || json?.message || `Emissão falhou (HTTP ${response.status}).`,
     };
   }
 
