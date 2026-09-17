@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { criarSessaoCheckout, isStripeConfigured } from "@/lib/stripe";
 import { isApiBrasilConfigured, PRECO_CRLV_CENTAVOS } from "@/lib/crlv";
 
 export async function POST(request: NextRequest) {
@@ -42,8 +42,7 @@ export async function POST(request: NextRequest) {
 
   let sessionUrl: string | null = null;
   try {
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
+    const session = await criarSessaoCheckout({
       mode: "payment",
       customer: subscription?.stripe_customer_id || undefined,
       customer_email: subscription?.stripe_customer_id ? undefined : user.email,
@@ -68,7 +67,7 @@ export async function POST(request: NextRequest) {
         placa,
         uf,
       },
-    });
+    }, user.email);
     sessionUrl = session.url;
   } catch (err) {
     const message = err instanceof Error ? err.message : "erro desconhecido";

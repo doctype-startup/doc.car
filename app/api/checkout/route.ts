@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { criarSessaoCheckout, isStripeConfigured } from "@/lib/stripe";
 import { getPlanoPorId } from "@/lib/plans";
 
 export async function POST(request: NextRequest) {
@@ -34,8 +34,7 @@ export async function POST(request: NextRequest) {
 
   let sessionUrl: string | null = null;
   try {
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
+    const session = await criarSessaoCheckout({
       mode: "subscription",
       customer: existing?.stripe_customer_id || undefined,
       customer_email: existing?.stripe_customer_id ? undefined : user.email,
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
       subscription_data: {
         metadata: { supabase_user_id: user.id },
       },
-    });
+    }, user.email);
     sessionUrl = session.url;
   } catch (err) {
     const message = err instanceof Error ? err.message : "erro desconhecido";
