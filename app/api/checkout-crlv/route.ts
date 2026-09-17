@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { criarSessaoCheckout, isStripeConfigured } from "@/lib/stripe";
 import { isApiBrasilConfigured, PRECO_CRLV_CENTAVOS } from "@/lib/crlv";
+import { normalizarPlaca } from "@/lib/meus-veiculos";
 
 export async function POST(request: NextRequest) {
   if (!isStripeConfigured || !isApiBrasilConfigured) {
@@ -9,10 +10,19 @@ export async function POST(request: NextRequest) {
   }
 
   const formData = await request.formData();
-  const placa = String(formData.get("placa") || "").trim().toUpperCase();
   const uf = String(formData.get("uf") || "").trim().toUpperCase();
 
-  if (!placa || !uf) {
+  // normalizarPlaca tira traço/espaço e valida o formato (ex: "MHF-2G17" →
+  // "MHF2G17") — sem isso, a API Brasil rejeita qualquer placa digitada com
+  // pontuação, mesmo com o formato certo por baixo.
+  let placa: string;
+  try {
+    placa = normalizarPlaca(String(formData.get("placa") || ""));
+  } catch {
+    return NextResponse.redirect(new URL("/dashboard/documentos?erro=1", request.url));
+  }
+
+  if (!uf) {
     return NextResponse.redirect(new URL("/dashboard/documentos?erro=1", request.url));
   }
 
