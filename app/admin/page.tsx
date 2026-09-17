@@ -143,6 +143,7 @@ export default async function AdminPage() {
           </div>
         </div>
         <nav className="topbar-nav">
+          <Link href="/admin/precos">Preços das APIs</Link>
           <Link href="/dashboard">Voltar ao app</Link>
         </nav>
       </header>
