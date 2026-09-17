@@ -33,6 +33,9 @@ export async function emitirCrlv(placa: string, uf: string): Promise<EmissaoCrlv
   const json = await response.json().catch(() => null);
 
   if (!response.ok || json?.error) {
+    console.error(
+      `[crlv] falha ao emitir (placa=${placa}, uf=${uf}, http=${response.status}): ${JSON.stringify(json)}`
+    );
     return {
       ok: false,
       errorMessage: json?.message || `Emissão falhou (HTTP ${response.status}).`,
@@ -41,6 +44,9 @@ export async function emitirCrlv(placa: string, uf: string): Promise<EmissaoCrlv
 
   const pdfBase64 = json?.data?.pdf || "";
   if (!pdfBase64) {
+    console.error(
+      `[crlv] resposta sem PDF (placa=${placa}, uf=${uf}): ${JSON.stringify(json)}`
+    );
     return { ok: false, errorMessage: json?.message || "CRLV-e não retornado pela API." };
   }
 
