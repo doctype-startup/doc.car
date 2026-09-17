@@ -122,9 +122,18 @@ Diferente dos dois provedores acima (consulta por placa de terceiros, sempre san
 3. Auditoria (`meus_veiculos_auditoria`) registra usuário, ação e veículo por id interno — nunca nome, CPF/CNPJ, Renavam ou chassi.
 4. Isso é uma feature distinta da consulta por placa: nunca faz busca de um terceiro sem relação com o despachante — só armazena e exibe de volta o que foi ativamente cadastrado/importado.
 
-### 6. Configurar na Vercel
+### 6. Documentos (emissão avulsa de CRLV-e)
 
-Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as 11 variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
+Recurso pago à parte (R$65,00 por emissão, Stripe Checkout avulso), separado da consulta de dados do veículo — usa outro provedor (API Brasil), acionado só quando o despachante pede.
+
+1. Copie o **Bearer Token** da conta API Brasil (`app.apibrasil.io` > **Bearer Token**) → `APIBRASIL_TOKEN`.
+2. `lib/crlv.ts` chama `POST https://gateway.apibrasil.io/api/v2/consulta/veiculos/credits` com `{"tipo":"crlve","placa","uf","homolog":false}`, autenticado com `Authorization: Bearer <token>`.
+3. Fluxo: o despachante informa placa + UF em `/dashboard/documentos` → `app/api/checkout-crlv` cria uma sessão de Stripe Checkout avulsa (preço inline, `PRECO_CRLV_CENTAVOS` em `lib/crlv.ts`, sem exigir Price cadastrado) → só depois do pagamento confirmado (`checkout.session.completed`) o webhook chama a API Brasil e salva o resultado em `documentos_crlv` (migração `0011_documentos_crlv.sql`). O PDF retornado (base64) é decodificado e salvo no mesmo bucket privado `crlv-pdfs` já usado por "Meus Veículos" (pasta `${user_id}/emissoes/${id}.pdf`), reaproveitando a policy de RLS existente — nenhum bucket novo é necessário.
+4. **Dados pessoais**: diferente dos outros provedores, aqui o **CPF do proprietário é liberado** — decisão deliberada da DOCTYPE, porque o documento emitido é o próprio CRLV-e oficial (o CPF já vem impresso nele; não há como emitir o documento oficial sem ele). Não estenda essa exceção pra nenhum outro fluxo sem confirmar de novo.
+
+### 7. Configurar na Vercel
+
+Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
 
 Sem essas variáveis configuradas, o app sobe normalmente mas login/cadastro, assinatura e consulta real mostram erro — é esperado até a configuração ser concluída.
 
