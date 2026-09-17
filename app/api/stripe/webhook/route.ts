@@ -8,6 +8,7 @@ import {
   registrarRecargaAvancada,
 } from "@/lib/creditos-avancada";
 import { getPacotePorId } from "@/lib/plans";
+import { emitirCrlv } from "@/lib/crlv";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
@@ -74,8 +75,15 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (session.mode !== "payment") return;
 
   const userId = session.metadata?.supabase_user_id;
+  if (!userId) return;
+
+  if (session.metadata?.tipo === "crlv_emissao") {
+    await handleCrlvPago(userId, session);
+    return;
+  }
+
   const pacoteId = session.metadata?.pacote_id;
-  if (!userId || !pacoteId) return;
+  if (!pacoteId) return;
 
   const pacote = getPacotePorId(pacoteId);
   const registrar = pacote?.tipo === "avancada" ? registrarRecargaAvancada : registrarRecarga;
@@ -88,6 +96,65 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log(
     `[stripe-webhook] recarga (${pacoteId}) registrada pro usuário ${userId}`
+  );
+}
+
+/** Pagamento avulso do CRLV-e já foi confirmado pelo Stripe — a partir daqui
+ * emite o documento na API Brasil e grava o resultado (sucesso ou erro),
+ * pra aparecer em /dashboard/documentos independentemente do despachante
+ * seguir com a aba aberta ou não. */
+async function handleCrlvPago(userId: string, session: Stripe.Checkout.Session) {
+  const placa = session.metadata?.placa || "";
+  const uf = session.metadata?.uf || "";
+  if (!placa || !uf) {
+    console.error(`[stripe-webhook] sessão de CRLV-e ${session.id} sem placa/uf no metadata`);
+    return;
+  }
+
+  const resultado = await emitirCrlv(placa, uf);
+  const admin = createAdminClient();
+
+  const id = crypto.randomUUID();
+  let pdfStoragePath: string | null = null;
+
+  if (resultado.ok) {
+    const path = `${userId}/emissoes/${id}.pdf`;
+    const { error: uploadError } = await admin.storage
+      .from("crlv-pdfs")
+      .upload(path, Buffer.from(resultado.pdfBase64, "base64"), {
+        contentType: "application/pdf",
+      });
+    if (uploadError) {
+      console.error(`[stripe-webhook] falha ao salvar PDF do CRLV-e: ${uploadError.message}`);
+    } else {
+      pdfStoragePath = path;
+    }
+  }
+
+  const { error } = await admin.from("documentos_crlv").insert({
+    id,
+    user_id: userId,
+    placa,
+    uf,
+    status: resultado.ok && pdfStoragePath ? "emitido" : "erro",
+    pdf_storage_path: pdfStoragePath,
+    erro_mensagem: resultado.ok
+      ? pdfStoragePath
+        ? null
+        : "CRLV-e emitido, mas falhou ao salvar o PDF."
+      : resultado.errorMessage,
+    stripe_checkout_session_id: session.id,
+  });
+
+  if (error && error.code !== "23505") {
+    // 23505 = violação de unicidade em stripe_checkout_session_id — o
+    // webhook do Stripe pode reenviar o mesmo evento, e isso é esperado.
+    console.error(`[stripe-webhook] falha ao gravar documento CRLV-e: ${error.message}`);
+    return;
+  }
+
+  console.log(
+    `[stripe-webhook] CRLV-e (placa=${placa}) ${resultado.ok ? "emitido" : "com erro"} pro usuário ${userId}`
   );
 }
 
