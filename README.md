@@ -88,7 +88,9 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
 
 1. Crie um produto e **três preços recorrentes mensais** em **Product catalog** — um por plano (Essencial, Profissional, Escritório; valores e cotas em `lib/plans.ts`). Copie cada `price_...` → `STRIPE_PRICE_ESSENCIAL` / `STRIPE_PRICE_PROFISSIONAL` / `STRIPE_PRICE_ESCRITORIO`.
 2. Em **Developers > API keys**, copie a `Secret key` → `STRIPE_SECRET_KEY`.
-3. Em **Developers > Webhooks**, crie um novo destino de evento (não reaproveite um endpoint de outro projeto) apontando para `https://SEU-DOMINIO/api/stripe/webhook`, escutando: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `checkout.session.completed`. Copie o `Signing secret` → `STRIPE_WEBHOOK_SECRET`.
+3. Em **Developers > Webhooks**, crie um novo destino de evento (não reaproveite um endpoint de outro projeto) apontando para `https://SEU-DOMINIO/api/stripe/webhook`, escutando: `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `checkout.session.completed`, `checkout.session.async_payment_succeeded`. Copie o `Signing secret` → `STRIPE_WEBHOOK_SECRET`.
+
+   O último evento (`async_payment_succeeded`) cobre métodos de pagamento assíncronos (boleto, por exemplo): `checkout.session.completed` dispara assim que o cliente **gera** o boleto, não quando ele **paga** — `payment_status` continua `"unpaid"` até a compensação (1-3 dias úteis). O webhook (`app/api/stripe/webhook/route.ts`) checa `payment_status === "paid"` antes de liberar qualquer crédito/documento, então sem esse evento configurado, uma compra paga via boleto nunca seria processada depois que compensasse.
 
    Se sua conta usa **Sandboxes** (contas Stripe novas), confirme que o produto, a chave e o webhook estão todos dentro do mesmo sandbox — cada sandbox tem chaves e webhooks isolados.
 
