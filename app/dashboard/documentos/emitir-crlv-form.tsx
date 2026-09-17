@@ -1,8 +1,14 @@
 "use client";
 
+// SC (Santa Catarina) fora da lista de propósito: a API Brasil respondeu
+// "uf SC não suportada para consulta CRLV." em testes reais — deixar
+// selecionável cobraria de novo por uma tentativa fadada a falhar. Se algum
+// outro estado também não for suportado, o erro específico do fornecedor
+// agora aparece na lista de "Documentos emitidos" (lib/crlv.ts prioriza
+// json.data.detail), então dá pra remover ele daqui também quando acontecer.
 const UFS = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
-  "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+  "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SP", "SE", "TO",
 ];
 
 export default function EmitirCrlvForm({ precoFormatado }: { precoFormatado: string }) {
