@@ -74,6 +74,16 @@ async function upsertSubscription(subscription: Stripe.Subscription) {
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (session.mode !== "payment") return;
 
+  // Métodos assíncronos (boleto, por exemplo) disparam checkout.session.completed
+  // assim que o cliente gera o boleto, não quando ele é pago — payment_status
+  // continua "unpaid" até a compensação (1-3 dias úteis). Sem essa checagem,
+  // liberaríamos crédito/documento (e, no caso do CRLV-e, gastaríamos saldo
+  // real na API Brasil) antes do pagamento de fato acontecer. Esse mesmo
+  // handler também é chamado por checkout.session.async_payment_succeeded,
+  // que só dispara quando o método assíncrono compensa — payment_status já
+  // vem "paid" nesse caso.
+  if (session.payment_status !== "paid") return;
+
   const userId = session.metadata?.supabase_user_id;
   if (!userId) return;
 
@@ -190,6 +200,7 @@ export async function POST(request: NextRequest) {
       await upsertSubscription(event.data.object as Stripe.Subscription);
       break;
     case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
       await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
       break;
     default:
