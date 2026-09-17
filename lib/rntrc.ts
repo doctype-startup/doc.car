@@ -25,12 +25,17 @@ export type ConsultaRntrcResult =
   | { ok: true; data: Transportador }
   | { ok: false; errorMessage: string };
 
-export async function consultarRntrcPorDocumento(cpfCnpj: string): Promise<ConsultaRntrcResult> {
+export type FiltroRntrc = { cpfCnpj: string } | { rntrc: string };
+
+export async function consultarRntrc(filtro: FiltroRntrc): Promise<ConsultaRntrcResult> {
   if (!token) {
     return { ok: false, errorMessage: "APIBRASIL_TOKEN não configurado" };
   }
 
-  const documento = cpfCnpj.replace(/\D/g, "");
+  const filters =
+    "cpfCnpj" in filtro
+      ? { cpf_cnpj: filtro.cpfCnpj.replace(/\D/g, "") }
+      : { rntrc: filtro.rntrc.replace(/\D/g, "") };
 
   const response = await fetch(URL_RNTRC, {
     method: "POST",
@@ -41,7 +46,7 @@ export async function consultarRntrcPorDocumento(cpfCnpj: string): Promise<Consu
     body: JSON.stringify({
       tipo: "search",
       homolog: false,
-      filters: { cpf_cnpj: documento },
+      filters,
       pagination: { page: 1, page_size: 1 },
     }),
   });
@@ -50,7 +55,7 @@ export async function consultarRntrcPorDocumento(cpfCnpj: string): Promise<Consu
 
   if (!response.ok || json?.error) {
     console.error(
-      `[rntrc] falha ao consultar (documento=${documento}, http=${response.status}): ${JSON.stringify(json)}`
+      `[rntrc] falha ao consultar (filtro=${JSON.stringify(filters)}, http=${response.status}): ${JSON.stringify(json)}`
     );
     return {
       ok: false,
@@ -61,7 +66,7 @@ export async function consultarRntrcPorDocumento(cpfCnpj: string): Promise<Consu
 
   const registro = json?.data?.data?.[0];
   if (!registro) {
-    return { ok: false, errorMessage: "Nenhum transportador encontrado com esse CPF/CNPJ no RNTRC." };
+    return { ok: false, errorMessage: "Nenhum transportador encontrado no RNTRC com esse dado." };
   }
 
   return {
@@ -69,7 +74,7 @@ export async function consultarRntrcPorDocumento(cpfCnpj: string): Promise<Consu
     data: {
       rntrc: registro.rntrc,
       tipoTransportador: registro.tipo_transportador || undefined,
-      cpfCnpj: registro.cpf_cnpj || documento,
+      cpfCnpj: registro.cpf_cnpj || ("cpfCnpj" in filtro ? filtro.cpfCnpj : ""),
       nomeRazaoSocial: registro.nome_razao_social || undefined,
       situacaoCadastral: registro.situacao_cadastral || undefined,
       dataCadastro: registro.data_cadastro || undefined,

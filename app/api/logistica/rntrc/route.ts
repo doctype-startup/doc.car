@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { consultarRntrcPorDocumento, isRntrcApiConfigured } from "@/lib/rntrc";
+import { consultarRntrc, FiltroRntrc, isRntrcApiConfigured } from "@/lib/rntrc";
+import { consultarVeiculoPorPlaca, isPlacaApiConfigured } from "@/lib/dados-veiculo";
 import { contarUsoNoPeriodo, registrarUsoAvancada } from "@/lib/uso-avancada";
 import { getPlanoPorPriceId, PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
@@ -35,9 +36,13 @@ async function cobrarAvulso(stripeCustomerId: string | null, documento: string) 
 }
 
 export async function GET(request: NextRequest) {
-  const documento = (request.nextUrl.searchParams.get("documento") || "").replace(/\D/g, "");
-  if (!documento) {
-    return NextResponse.json({ error: "CPF/CNPJ é obrigatório" }, { status: 400 });
+  const tipo = request.nextUrl.searchParams.get("tipo") || "cpf_cnpj";
+  const valor = (request.nextUrl.searchParams.get("valor") || "").trim();
+  if (!valor) {
+    return NextResponse.json({ error: "informe um valor pra buscar" }, { status: 400 });
+  }
+  if (tipo !== "cpf_cnpj" && tipo !== "rntrc" && tipo !== "placa") {
+    return NextResponse.json({ error: "tipo de busca inválido" }, { status: 400 });
   }
 
   const supabase = await createClient();
@@ -66,14 +71,49 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "APIBRASIL_TOKEN não configurado" }, { status: 500 });
   }
 
+  // Busca por placa não é um filtro direto da API do RNTRC (que indexa por
+  // transportador, não por veículo) — resolve a placa pro CNPJ do
+  // proprietário primeiro, e busca o RNTRC desse CNPJ. Só funciona quando o
+  // dono é pessoa jurídica: nunca expomos o CPF do proprietário (LGPD,
+  // mesma regra de lib/dados-veiculo.ts), então não há CPF disponível aqui
+  // pra buscar quando o dono é pessoa física.
+  let filtro: FiltroRntrc;
+  let identificadorParaAuditoria: string;
+  if (tipo === "placa") {
+    if (!isPlacaApiConfigured) {
+      return NextResponse.json({ error: "PLACA_API_TOKEN não configurado" }, { status: 500 });
+    }
+    const veiculo = await consultarVeiculoPorPlaca(valor);
+    if (!veiculo.ok) {
+      return NextResponse.json({ error: veiculo.errorMessage }, { status: 502 });
+    }
+    if (!veiculo.data.proprietarioCnpj) {
+      return NextResponse.json(
+        {
+          error:
+            "O proprietário dessa placa é pessoa física — a busca por placa só funciona quando o dono é pessoa jurídica (CNPJ). Tente buscar pelo CNPJ ou RNTRC da transportadora diretamente.",
+        },
+        { status: 422 }
+      );
+    }
+    filtro = { cpfCnpj: veiculo.data.proprietarioCnpj };
+    identificadorParaAuditoria = veiculo.data.proprietarioCnpj;
+  } else if (tipo === "rntrc") {
+    filtro = { rntrc: valor };
+    identificadorParaAuditoria = valor.replace(/\D/g, "");
+  } else {
+    filtro = { cpfCnpj: valor };
+    identificadorParaAuditoria = valor.replace(/\D/g, "");
+  }
+
   const plano = getPlanoPorPriceId(subscription?.price_id);
   const desde = inicioDoPeriodo(subscription?.current_period_start ?? null);
   const usoNoPeriodo = plano ? await contarUsoNoPeriodo(supabase, user.id, desde) : 0;
   const estourouCota = plano ? usoNoPeriodo >= plano.cota : false;
 
-  const result = await consultarRntrcPorDocumento(documento);
+  const result = await consultarRntrc(filtro);
 
-  console.log(`[logistica-rntrc] documento=${documento} ok=${result.ok}`);
+  console.log(`[logistica-rntrc] tipo=${tipo} ok=${result.ok}`);
 
   if (!result.ok) {
     return NextResponse.json({ error: result.errorMessage }, { status: 502 });
@@ -86,15 +126,15 @@ export async function GET(request: NextRequest) {
       origem = "credito";
     } else {
       origem = "avulso";
-      await cobrarAvulso(subscription?.stripe_customer_id ?? null, documento);
+      await cobrarAvulso(subscription?.stripe_customer_id ?? null, identificadorParaAuditoria);
     }
   }
 
   // Reaproveita avancada_usage/recargas_avancada — mesma cota e mesmo saldo
   // de "consulta avançada" que multas/roubo-furto já usa (decisão da
   // cliente: RNTRC desconta do mesmo saldo). "placa" aqui guarda o
-  // CPF/CNPJ consultado, não uma placa de veículo.
-  await registrarUsoAvancada({ userId: user.id, placa: documento, origem });
+  // CPF/CNPJ ou RNTRC consultado, não necessariamente uma placa de veículo.
+  await registrarUsoAvancada({ userId: user.id, placa: identificadorParaAuditoria, origem });
 
   return NextResponse.json({
     data: result.data,
