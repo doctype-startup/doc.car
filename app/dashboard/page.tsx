@@ -12,6 +12,7 @@ import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj, formatCpf } from "@/lib/dados-veiculo";
 import { ConsultaAvancada } from "@/lib/dados-avancados";
 import { formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
+import { extrairCamposAvulsa } from "@/lib/consultas-avulsas-extratores";
 import type { ResultadoServicoAvancada } from "@/app/api/consultas-avulsas/avancada/route";
 import { PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
@@ -1157,10 +1158,15 @@ function DashboardContent() {
               </h3>
               {resultado.ok ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {Object.entries(resultado.data).map(([chave, valor]) => (
-                    <div key={chave} className="kv">
-                      <span className="label">{formatarLabelAvulsa(chave)}</span>
-                      <span className="value">{formatarValorAvulsa(valor)}</span>
+                  {(extrairCamposAvulsa(resultado.servicoId, resultado.data) ??
+                    Object.entries(resultado.data).map(([chave, valor]) => ({
+                      label: formatarLabelAvulsa(chave),
+                      valor: formatarValorAvulsa(valor),
+                    }))
+                  ).map((campo) => (
+                    <div key={campo.label} className="kv">
+                      <span className="label">{campo.label}</span>
+                      <span className="value">{campo.valor}</span>
                     </div>
                   ))}
                 </div>
