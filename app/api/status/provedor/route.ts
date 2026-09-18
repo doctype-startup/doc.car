@@ -25,7 +25,7 @@ export async function GET() {
     return NextResponse.json({
       online: false,
       verificadoEm: new Date().toISOString(),
-      motivo: "PLACA_API_TOKEN não configurado",
+      motivo: "APIBRASIL_TOKEN não configurado",
     });
   }
 

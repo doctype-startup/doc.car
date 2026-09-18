@@ -74,14 +74,13 @@ export async function GET(request: NextRequest) {
   // Busca por placa não é um filtro direto da API do RNTRC (que indexa por
   // transportador, não por veículo) — resolve a placa pro CNPJ do
   // proprietário primeiro, e busca o RNTRC desse CNPJ. Só funciona quando o
-  // dono é pessoa jurídica: nunca expomos o CPF do proprietário (LGPD,
-  // mesma regra de lib/dados-veiculo.ts), então não há CPF disponível aqui
-  // pra buscar quando o dono é pessoa física.
+  // dono é pessoa jurídica: a API do RNTRC só aceita CNPJ de transportador,
+  // então não há como buscar quando o dono da placa é pessoa física (CPF).
   let filtro: FiltroRntrc;
   let identificadorParaAuditoria: string;
   if (tipo === "placa") {
     if (!isPlacaApiConfigured) {
-      return NextResponse.json({ error: "PLACA_API_TOKEN não configurado" }, { status: 500 });
+      return NextResponse.json({ error: "APIBRASIL_TOKEN não configurado" }, { status: 500 });
     }
     const veiculo = await consultarVeiculoPorPlaca(valor);
     if (!veiculo.ok) {

@@ -15,12 +15,12 @@ export type ProprietarioAtual = {
   municipioEmplacamento?: string;
   ufJurisdicao?: string;
   tipoSituacaoVeiculo?: string;
-  /** Nome completo do proprietário atual — sem sanitização, ao contrário de
-   * lib/dados-veiculo.ts. Recurso à parte (aba CRM), liberado deliberadamente
-   * com dado pessoal completo (nome + CPF/CNPJ) pra profissional veicular,
-   * atrás de reconfirmação do próprio CPF/CNPJ do despachante a cada
-   * consulta (ver app/api/crm/proprietario). Nunca use esses campos em
-   * nenhum outro fluxo sem essa mesma proteção. */
+  /** Nome completo do proprietário atual. Recurso à parte (aba CRM),
+   * liberado deliberadamente com dado pessoal completo (nome + CPF/CNPJ)
+   * pra profissional veicular, atrás de reconfirmação do próprio CPF/CNPJ
+   * do despachante a cada consulta (ver app/api/crm/proprietario) — a
+   * consulta simples (lib/dados-veiculo.ts) também traz dado pessoal
+   * completo do proprietário, mas sem essa reconfirmação nem auditoria. */
   nomeProprietario?: string;
   documentoProprietario?: string;
   tipoDocumentoProprietario?: string;
