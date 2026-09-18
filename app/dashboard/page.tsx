@@ -9,7 +9,7 @@ import {
   VehicleQuery,
 } from "@/lib/vehicle";
 import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
-import { VeiculoReal, formatCnpj } from "@/lib/dados-veiculo";
+import { VeiculoReal, formatCnpj, formatCpf } from "@/lib/dados-veiculo";
 import { ConsultaAvancada } from "@/lib/dados-avancados";
 import { PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
@@ -348,12 +348,13 @@ function DashboardContent() {
       </div>
 
       <div className="info-banner">
-        Ficha do veículo, FIPE e restrições vêm do provedor de dados real —
-        só aparece quando a consulta funciona. Débitos de IPVA/licenciamento
-        ainda não têm fonte de dados disponível. Renavam, chassi,
-        proprietário e dados do CRV, além de multas, roubo/furto e Renajud,
-        têm consulta avançada real, sob demanda — veja o botão no card
-        Identificação do documento abaixo (custo por consulta).
+        Ficha do veículo e dados completos do proprietário (nome, CPF/CNPJ,
+        telefones, e-mails, endereços) vêm do provedor de dados real — só
+        aparece quando a consulta funciona. Débitos de IPVA/licenciamento e
+        FIPE ainda não têm fonte de dados disponível nessa consulta.
+        Renavam, chassi e dados do CRV, além de multas, roubo/furto e
+        Renajud, têm consulta avançada real, sob demanda — veja o botão no
+        card Identificação do documento abaixo (custo por consulta).
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -537,6 +538,112 @@ function DashboardContent() {
               </div>
             </div>
           </div>
+
+          {(veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
+            <div className="card">
+              <h3>
+                Dados do proprietário <span className="badge ok">Dados reais</span>
+              </h3>
+              <div className="grid-3">
+                {veiculoReal.proprietarioNome && (
+                  <div className="kv">
+                    <span className="label">Nome</span>
+                    <span className="value">{veiculoReal.proprietarioNome}</span>
+                  </div>
+                )}
+                {veiculoReal.proprietarioDocumento && (
+                  <div className="kv">
+                    <span className="label">CPF/CNPJ</span>
+                    <span className="value">
+                      {veiculoReal.proprietarioCnpj
+                        ? formatCnpj(veiculoReal.proprietarioCnpj)
+                        : veiculoReal.proprietarioCpf
+                          ? formatCpf(veiculoReal.proprietarioCpf)
+                          : veiculoReal.proprietarioDocumento}
+                    </span>
+                  </div>
+                )}
+                {veiculoReal.proprietarioNomeMae && (
+                  <div className="kv">
+                    <span className="label">Nome da mãe</span>
+                    <span className="value">{veiculoReal.proprietarioNomeMae}</span>
+                  </div>
+                )}
+                {veiculoReal.proprietarioDataNascimentoFundacao && (
+                  <div className="kv">
+                    <span className="label">Nascimento/Fundação</span>
+                    <span className="value">{veiculoReal.proprietarioDataNascimentoFundacao}</span>
+                  </div>
+                )}
+                {veiculoReal.proprietarioSexo && (
+                  <div className="kv">
+                    <span className="label">Sexo</span>
+                    <span className="value">{veiculoReal.proprietarioSexo}</span>
+                  </div>
+                )}
+                {veiculoReal.proprietarioSituacaoReceita && (
+                  <div className="kv">
+                    <span className="label">Situação na Receita</span>
+                    <span className="value">{veiculoReal.proprietarioSituacaoReceita}</span>
+                  </div>
+                )}
+                {veiculoReal.proprietarioTipoPessoa && (
+                  <div className="kv">
+                    <span className="label">Tipo</span>
+                    <span className="value">{veiculoReal.proprietarioTipoPessoa}</span>
+                  </div>
+                )}
+              </div>
+
+              {veiculoReal.proprietarioTelefonesCelular &&
+                veiculoReal.proprietarioTelefonesCelular.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <span className="label">Telefone(s) celular</span>
+                    <p style={{ fontSize: 13, marginTop: 4 }}>
+                      {veiculoReal.proprietarioTelefonesCelular.join(" · ")}
+                    </p>
+                  </div>
+                )}
+              {veiculoReal.proprietarioTelefonesFixo &&
+                veiculoReal.proprietarioTelefonesFixo.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <span className="label">Telefone(s) fixo</span>
+                    <p style={{ fontSize: 13, marginTop: 4 }}>
+                      {veiculoReal.proprietarioTelefonesFixo.join(" · ")}
+                    </p>
+                  </div>
+                )}
+              {veiculoReal.proprietarioEmails && veiculoReal.proprietarioEmails.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <span className="label">E-mail(s)</span>
+                  <p style={{ fontSize: 13, marginTop: 4 }}>
+                    {veiculoReal.proprietarioEmails.join(" · ")}
+                  </p>
+                </div>
+              )}
+              {veiculoReal.proprietarioEnderecos && veiculoReal.proprietarioEnderecos.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <span className="label">Endereço(s)</span>
+                  {veiculoReal.proprietarioEnderecos.map((endereco, idx) => (
+                    <p key={idx} style={{ fontSize: 13, marginTop: 4 }}>
+                      {[
+                        endereco.endereco,
+                        endereco.numero,
+                        endereco.complemento,
+                        endereco.bairro,
+                        endereco.cidade && endereco.uf
+                          ? `${endereco.cidade}/${endereco.uf}`
+                          : endereco.cidade || endereco.uf,
+                        endereco.cep,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {veiculoReal && (
             <div className="card">

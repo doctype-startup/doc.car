@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
   if (!isPlacaApiConfigured) {
     return NextResponse.json(
-      { error: "PLACA_API_TOKEN não configurado" },
+      { error: "APIBRASIL_TOKEN não configurado" },
       { status: 500 }
     );
   }
