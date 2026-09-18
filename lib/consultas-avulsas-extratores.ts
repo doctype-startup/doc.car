@@ -322,6 +322,33 @@ function extrairAgregadosV2(data: Obj): CampoAvulsa[] {
   );
 }
 
+function extrairRenainf(data: Obj): CampoAvulsa[] {
+  const registros: Obj[] = Array.isArray(data.registros) ? data.registros : [];
+  if (registros.length === 0) {
+    return campos(campo("Placa", data.placa), campo("Ocorrências", data.quantidade_ocorrencias));
+  }
+
+  const camposRegistros = registros.flatMap((r, idx) => {
+    const sufixo = registros.length > 1 ? ` ${idx + 1}` : "";
+    const valorPago = r.dadosdopagamento_valor_pago;
+    const pago =
+      valorPago && valorPago !== "0,00" ? `Sim — ${valorPago}` : undefined;
+    return campos(
+      campo(`Infração${sufixo}`, r.detalhe_cod_infracao || r.infracao),
+      campo(`Data/hora da infração${sufixo}`, [r.detalhe_dt_infracao, r.detalhe_hr_infracao].filter(Boolean).join(" ")),
+      campo(`Local${sufixo}`, r.detalhe_local_infracao),
+      campo(`Valor${sufixo}`, r.detalhe_valor_infracao),
+      campo(`Órgão autuador${sufixo}`, r.detalhe_orgao_autuador),
+      campo(`UF${sufixo}`, r.detalhe_uf_orgao_autuador),
+      campo(`Nº do auto de infração${sufixo}`, r.detalhe_num_auto_infracao || r.numeroautoinfracao),
+      campo(`Exigível${sufixo}`, r.exigibilidade),
+      campo(`Paga${sufixo}`, pago)
+    );
+  });
+
+  return campos(campo("Placa", data.placa), campo("Ocorrências", data.quantidade_ocorrencias), ...camposRegistros);
+}
+
 const EXTRATORES: Record<string, (data: Obj) => CampoAvulsa[]> = {
   "agregados-simples": extrairAgregadosSimples,
   "agregados-renavam": extrairAgregadosRenavam,
@@ -330,6 +357,7 @@ const EXTRATORES: Record<string, (data: Obj) => CampoAvulsa[]> = {
   "endereco-telefone-por-placa": extrairEnderecoTelefone,
   "ficha-tecnica": extrairFichaTecnica,
   "agregados-v2": extrairAgregadosV2,
+  renainf: extrairRenainf,
 };
 
 /** Extrai campos legíveis do retorno de uma consulta avulsa, usando o
