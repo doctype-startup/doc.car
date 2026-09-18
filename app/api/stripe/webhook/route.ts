@@ -9,6 +9,7 @@ import {
 } from "@/lib/creditos-avancada";
 import { getPacotePorId } from "@/lib/plans";
 import { emitirCrlv } from "@/lib/crlv";
+import { creditarSaldoAvulsas } from "@/lib/saldo-avulsas";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 
@@ -92,6 +93,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     return;
   }
 
+  if (session.metadata?.tipo === "saldo_avulsas") {
+    await handleSaldoAvulsasPago(userId, session);
+    return;
+  }
+
   const pacoteId = session.metadata?.pacote_id;
   if (!pacoteId) return;
 
@@ -165,6 +171,24 @@ async function handleCrlvPago(userId: string, session: Stripe.Checkout.Session) 
 
   console.log(
     `[stripe-webhook] CRLV-e (placa=${placa}) ${resultado.ok ? "emitido" : "com erro"} pro usuário ${userId}`
+  );
+}
+
+/** Recarga do saldo de Consultas Avulsas já foi confirmada pelo Stripe —
+ * credita o valor pago no saldo pré-pago do despachante. */
+async function handleSaldoAvulsasPago(userId: string, session: Stripe.Checkout.Session) {
+  const valorCentavos = Number(session.metadata?.valor_centavos || 0);
+  if (!Number.isFinite(valorCentavos) || valorCentavos <= 0) {
+    console.error(
+      `[stripe-webhook] sessão de saldo avulsas ${session.id} sem valor_centavos válido`
+    );
+    return;
+  }
+
+  await creditarSaldoAvulsas({ userId, valorCentavos, checkoutSessionId: session.id });
+
+  console.log(
+    `[stripe-webhook] saldo avulsas creditado (R$${(valorCentavos / 100).toFixed(2)}) pro usuário ${userId}`
   );
 }
 

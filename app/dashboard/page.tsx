@@ -11,6 +11,8 @@ import {
 import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj, formatCpf } from "@/lib/dados-veiculo";
 import { ConsultaAvancada } from "@/lib/dados-avancados";
+import { formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
+import type { ResultadoServicoAvancada } from "@/app/api/consultas-avulsas/avancada/route";
 import { PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
 import { useGuardiaoResumo } from "@/components/guardiao-context";
@@ -97,6 +99,11 @@ function DashboardContent() {
   const [avancada, setAvancada] = useState<ConsultaAvancada | null>(null);
   const [avancadaError, setAvancadaError] = useState("");
   const [avancadaLoading, setAvancadaLoading] = useState(false);
+  /** Resultado dos serviços do menu "Consultas Avulsas" marcados como
+   * "avançada" (lib/consultas-avulsas.ts) — disparados junto com a
+   * consulta avançada principal, complementando a ficha. Vazio enquanto
+   * nenhum serviço desse grupo for cadastrado. */
+  const [avulsasAvancada, setAvulsasAvancada] = useState<ResultadoServicoAvancada[]>([]);
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Incrementado a cada nova busca (runSearch/runFromCache) — uma resposta
@@ -150,6 +157,7 @@ function DashboardContent() {
     setCpfCnpjCliente("");
     setAvancada(null);
     setAvancadaError("");
+    setAvulsasAvancada([]);
     setSaldoSimples(null);
     setFromCache(false);
     setShowToast(false);
@@ -198,19 +206,33 @@ function DashboardContent() {
     setAvancadaLoading(true);
     setAvancadaError("");
 
-    try {
-      const response = await fetch(
-        `/api/consulta-avancada?placa=${encodeURIComponent(placaAlvo)}`
+    // Dispara a consulta avançada principal (multas/roubo-furto/Renajud) e
+    // todos os serviços do menu "Consultas Avulsas" marcados como
+    // "avançada" (lib/consultas-avulsas.ts) ao mesmo tempo, pra uma única
+    // placa — a segunda complementa a mesma ficha, sem bloquear nem ser
+    // bloqueada pela primeira; fica vazia (sem erro pra exibir) enquanto
+    // nenhum serviço desse grupo estiver cadastrado.
+    const [principal, avulsas] = await Promise.allSettled([
+      fetch(`/api/consulta-avancada?placa=${encodeURIComponent(placaAlvo)}`).then((r) =>
+        r.json().then((payload) => ({ ok: r.ok, payload }))
+      ),
+      fetch(`/api/consultas-avulsas/avancada?placa=${encodeURIComponent(placaAlvo)}`).then((r) =>
+        r.json().then((payload) => ({ ok: r.ok, payload }))
+      ),
+    ]);
+
+    if (principal.status === "fulfilled" && principal.value.ok) {
+      setAvancada(principal.value.payload.data);
+    } else {
+      setAvancadaError(
+        (principal.status === "fulfilled" && principal.value.payload.error) ||
+          "Não foi possível contatar o provedor de dados avançados."
       );
-      const payload = await response.json();
-      if (response.ok) {
-        setAvancada(payload.data);
-      } else {
-        setAvancadaError(payload.error || "Consulta avançada indisponível.");
-      }
-    } catch {
-      setAvancadaError("Não foi possível contatar o provedor de dados avançados.");
     }
+
+    setAvulsasAvancada(
+      avulsas.status === "fulfilled" && avulsas.value.ok ? avulsas.value.payload.resultados ?? [] : []
+    );
 
     setAvancadaLoading(false);
   }
@@ -239,6 +261,7 @@ function DashboardContent() {
       setError("");
       setRealError("");
       setAvancadaError("");
+      setAvulsasAvancada([]);
       setCpfCnpjCliente("");
       setSaldoSimples(null);
       setShowToast(false);
@@ -365,13 +388,14 @@ function DashboardContent() {
       </div>
 
       <div className="info-banner">
-        Ficha do veículo e dados completos do proprietário (nome, CPF/CNPJ,
-        telefones, e-mails, endereços) vêm do provedor de dados real — só
-        aparece quando a consulta funciona. Débitos de IPVA/licenciamento e
-        FIPE ainda não têm fonte de dados disponível nessa consulta.
-        Renavam, chassi e dados do CRV, além de multas, roubo/furto e
-        Renajud, têm consulta avançada real, sob demanda — veja o botão no
-        card Identificação do documento abaixo (custo por consulta).
+        Ficha do veículo e o nome do proprietário vêm do provedor de dados
+        real — só aparece quando a consulta funciona. Débitos de
+        IPVA/licenciamento e FIPE ainda não têm fonte de dados disponível
+        nessa consulta. Renavam, chassi, dados do CRV, dossiê completo do
+        proprietário (CPF/CNPJ, telefones, e-mails, endereços), multas,
+        roubo/furto e Renajud têm consulta avançada real, sob demanda — veja
+        o botão no card Identificação do documento abaixo (custo por
+        consulta).
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -543,6 +567,12 @@ function DashboardContent() {
                   <span className="value">{veiculoReal.fipe.anoModelo}</span>
                 </div>
               )}
+              {veiculoReal.proprietarioNome && (
+                <div className="kv">
+                  <span className="label">Proprietário</span>
+                  <span className="value">{veiculoReal.proprietarioNome}</span>
+                </div>
+              )}
               <div className="kv">
                 <span className="label">CPF/CNPJ do cliente (informado por você)</span>
                 <input
@@ -557,7 +587,7 @@ function DashboardContent() {
             </div>
           </div>
 
-          {(veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
+          {avancada && (veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
             <div className="card">
               <h3>
                 Dados do proprietário <span className="badge ok">Dados reais</span>
@@ -1116,6 +1146,29 @@ function DashboardContent() {
               )}
             </div>
           )}
+
+          {avulsasAvancada.map((resultado) => (
+            <div key={resultado.servicoId} className="card">
+              <h3>
+                {resultado.nome}{" "}
+                <span className={`badge ${resultado.ok ? "ok" : "warn"}`}>
+                  {resultado.ok ? "Dados reais" : "Não disponível"}
+                </span>
+              </h3>
+              {resultado.ok ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {Object.entries(resultado.data).map(([chave, valor]) => (
+                    <div key={chave} className="kv">
+                      <span className="label">{formatarLabelAvulsa(chave)}</span>
+                      <span className="value">{formatarValorAvulsa(valor)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>{resultado.errorMessage}</p>
+              )}
+            </div>
+          ))}
 
           <div className="card">
             <h3>

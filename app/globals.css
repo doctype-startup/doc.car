@@ -439,6 +439,87 @@ button.wide {
   color: #fff;
 }
 
+.consultas-avulsas {
+  position: relative;
+}
+
+.consultas-avulsas-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b7bfd1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.consultas-avulsas-trigger:hover,
+.consultas-avulsas-trigger.active {
+  background: var(--navy-light);
+  color: #fff;
+}
+
+.consultas-avulsas-caret {
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.consultas-avulsas-trigger.active .consultas-avulsas-caret {
+  transform: rotate(180deg);
+}
+
+.consultas-avulsas-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 320px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 40px rgba(6, 19, 63, 0.25);
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  z-index: 40;
+}
+
+.consultas-avulsas-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.consultas-avulsas-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.consultas-avulsas-grupo a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.consultas-avulsas-grupo a:hover {
+  color: var(--brand);
+}
+
+.consultas-avulsas-vazio {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .topbar-right {
   display: flex;
   align-items: center;
@@ -871,6 +952,7 @@ button.wide {
   .topbar-nav {
     order: 3;
     width: 100%;
+    flex-wrap: wrap;
   }
   .app-content {
     padding: 24px;
@@ -878,6 +960,22 @@ button.wide {
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr;
+  }
+  .consultas-avulsas {
+    width: 100%;
+  }
+  .consultas-avulsas-trigger {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .consultas-avulsas-panel {
+    position: static;
+    width: 100%;
+    grid-template-columns: 1fr;
+    box-shadow: none;
+    border: none;
+    margin-top: 8px;
+    padding: 12px 0 0;
   }
 }
 

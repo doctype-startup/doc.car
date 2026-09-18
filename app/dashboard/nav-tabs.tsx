@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ConsultasAvulsasMenu from "./consultas-avulsas-menu";
 
 const TABS = [
   { href: "/dashboard", label: "Consultar placa" },
@@ -27,6 +28,7 @@ export default function NavTabs({ isAdmin = false }: { isAdmin?: boolean }) {
           {tab.label}
         </Link>
       ))}
+      <ConsultasAvulsasMenu />
       {isAdmin && <Link href="/admin">Admin</Link>}
     </nav>
   );
