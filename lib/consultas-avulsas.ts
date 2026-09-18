@@ -77,6 +77,13 @@ export const CONSULTAS_AVULSAS: ConsultaAvulsaServico[] = [
     // cobrar duas vezes a mesma API. Só aparece como item próprio no menu.
     incluirNoCombo: false,
   },
+  {
+    id: "ficha-tecnica",
+    nome: "Ficha Técnica",
+    grupo: "avancada",
+    tipoApi: "ficha-tecnica",
+    precoCentavos: 990,
+  },
 ];
 
 export function getConsultaAvulsaPorId(id: string | null | undefined) {
