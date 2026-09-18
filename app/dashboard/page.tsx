@@ -14,7 +14,7 @@ import { ConsultaAvancada } from "@/lib/dados-avancados";
 import { formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
 import { extrairCamposAvulsa } from "@/lib/consultas-avulsas-extratores";
 import type { ResultadoServicoAvancada } from "@/app/api/consultas-avulsas/avancada/route";
-import { PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
+import { PRECO_AVULSO_CENTAVOS, PRECO_PROPRIETARIO_AVULSO_CENTAVOS } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
 import { useGuardiaoResumo } from "@/components/guardiao-context";
 
@@ -105,6 +105,15 @@ function DashboardContent() {
    * consulta avançada principal, complementando a ficha. Vazio enquanto
    * nenhum serviço desse grupo for cadastrado. */
   const [avulsasAvancada, setAvulsasAvancada] = useState<ResultadoServicoAvancada[]>([]);
+  /** Dossiê completo do proprietário (CPF/CNPJ, nome da mãe, telefones,
+   * endereços) — plus separado da consulta avançada principal, com botão
+   * próprio: desconta da mesma cota mensal quando disponível, senão cobra
+   * avulso (ver app/api/consulta-avancada/proprietario). O dado em si já
+   * está em veiculoReal (buscado de graça na consulta simples) — só falta
+   * liberar a exibição depois da cota/cobrança confirmada. */
+  const [proprietarioLiberado, setProprietarioLiberado] = useState(false);
+  const [proprietarioLoading, setProprietarioLoading] = useState(false);
+  const [proprietarioError, setProprietarioError] = useState("");
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Incrementado a cada nova busca (runSearch/runFromCache) — uma resposta
@@ -159,6 +168,8 @@ function DashboardContent() {
     setAvancada(null);
     setAvancadaError("");
     setAvulsasAvancada([]);
+    setProprietarioLiberado(false);
+    setProprietarioError("");
     setSaldoSimples(null);
     setFromCache(false);
     setShowToast(false);
@@ -238,6 +249,35 @@ function DashboardContent() {
     setAvancadaLoading(false);
   }
 
+  /** Libera o card "Dados do proprietário" — o dado em si já está em
+   * veiculoReal (a consulta simples já buscou de graça), essa chamada só
+   * confirma cota/cobrança (ver app/api/consulta-avancada/proprietario). */
+  async function liberarProprietario() {
+    const placaAlvo = veiculoReal?.placa || result?.placa;
+    if (!placaAlvo) return;
+
+    setProprietarioLoading(true);
+    setProprietarioError("");
+
+    try {
+      const response = await fetch("/api/consulta-avancada/proprietario", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ placa: placaAlvo }),
+      });
+      const payload = await response.json();
+      if (response.ok) {
+        setProprietarioLiberado(true);
+      } else {
+        setProprietarioError(payload.error || "Não foi possível liberar os dados do proprietário.");
+      }
+    } catch {
+      setProprietarioError("Não foi possível contatar o servidor.");
+    }
+
+    setProprietarioLoading(false);
+  }
+
   async function runFromCache(value: string) {
     const requestId = ++requestIdRef.current;
 
@@ -263,6 +303,8 @@ function DashboardContent() {
       setRealError("");
       setAvancadaError("");
       setAvulsasAvancada([]);
+      setProprietarioLiberado(false);
+      setProprietarioError("");
       setCpfCnpjCliente("");
       setSaldoSimples(null);
       setShowToast(false);
@@ -392,11 +434,12 @@ function DashboardContent() {
         Ficha do veículo e o nome do proprietário vêm do provedor de dados
         real — só aparece quando a consulta funciona. Débitos de
         IPVA/licenciamento e FIPE ainda não têm fonte de dados disponível
-        nessa consulta. Renavam, chassi, dados do CRV, dossiê completo do
-        proprietário (CPF/CNPJ, telefones, e-mails, endereços), multas,
-        roubo/furto e Renajud têm consulta avançada real, sob demanda — veja
-        o botão no card Identificação do documento abaixo (custo por
-        consulta).
+        nessa consulta. Renavam, chassi, dados do CRV, multas, roubo/furto e
+        Renajud têm consulta avançada real, sob demanda — veja o botão no
+        card Identificação do documento abaixo (custo por consulta). O
+        dossiê completo do proprietário (CPF/CNPJ, telefones, e-mails,
+        endereços) é liberado à parte, no botão do próprio card Dados do
+        proprietário.
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -588,7 +631,35 @@ function DashboardContent() {
             </div>
           </div>
 
-          {avancada && (veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
+          {!proprietarioLiberado &&
+            (veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
+              <div className="card">
+                <h3>
+                  Dados do proprietário <span className="badge neutral">Plus</span>
+                </h3>
+                <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                  CPF/CNPJ, nome da mãe, telefones e endereços do proprietário — consulta
+                  avançada, dentro da cota do seu plano (ou{" "}
+                  {currency.format(PRECO_PROPRIETARIO_AVULSO_CENTAVOS / 100)} avulso se a cota do
+                  mês já acabou).
+                </p>
+                {proprietarioError && (
+                  <p className="form-error" style={{ marginBottom: 12 }}>
+                    {proprietarioError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="secondary-button destaque"
+                  onClick={liberarProprietario}
+                  disabled={proprietarioLoading}
+                >
+                  {proprietarioLoading ? "Liberando..." : "Consulta Avançada — ver dados completos"}
+                </button>
+              </div>
+            )}
+
+          {proprietarioLiberado && (veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
             <div className="card">
               <h3>
                 Dados do proprietário <span className="badge ok">Dados reais</span>
