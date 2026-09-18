@@ -142,7 +142,19 @@ Consulta a situação de um transportador (RNTRC/ANTT) — útil pra despachante
 3. **Cobrança**: por pedido da cliente, reaproveita a mesma cota/saldo da "Consulta avançada" (multas/roubo-furto/Renajud) — mesma lógica de `app/api/consulta-avancada` (cota do plano → crédito de recarga → avulso cobrado no Stripe), gravando o uso em `avancada_usage` (coluna `placa` guarda o CPF/CNPJ ou RNTRC consultado nesse caso, não necessariamente uma placa de veículo).
 4. Não precisa de migração nova — reaproveita as tabelas já existentes de consulta avançada.
 
-### 8. Configurar na Vercel
+### 8. CRM (dossiê completo de proprietário)
+
+Consulta o proprietário atual de um veículo **sem sanitização** — nome completo e CPF/CNPJ, ao contrário de todo o resto do app (que nunca expõe CPF de pessoa física). Decisão deliberada, pra atender despachante/profissional veicular que precisa desse dado completo — atrás de proteções extras, não do jeito aberto.
+
+1. `lib/proprietario.ts` chama o mesmo endpoint do CRLV-e (`POST .../consulta/veiculos/credits`) com `{"tipo":"proprietario-atual-v2","placa":"...","homolog":false}`.
+2. **Proteções** (`/dashboard/crm`, migração `0013_crm_proprietario.sql`):
+   - O despachante cadastra o próprio CPF/CNPJ uma vez (`profiles.cpf_cnpj`, via `/api/perfil/cpf-cnpj`) — nunca pedido no cadastro inicial.
+   - Toda consulta exige **reconfirmar** esse CPF/CNPJ digitando de novo; `app/api/crm/proprietario` rejeita se não bater com o cadastrado.
+   - Toda consulta bem-sucedida é **auditada** (`crm_proprietario_auditoria`: usuário, placa, quando) — nunca o nome/CPF do proprietário retornado, só o fato de que a consulta aconteceu.
+3. **Cobrança**: mesmo padrão de Logística — reaproveita a cota/saldo de "Consulta avançada" (`avancada_usage`/`recargas_avancada`), sem tabela de crédito própria.
+4. **Nunca reaproveite `lib/proprietario.ts` em nenhum outro fluxo** sem manter as três proteções acima — é a única exceção deliberada à regra de nunca expor CPF de pessoa física.
+
+### 9. Configurar na Vercel
 
 Em **Project Settings > Environment Variables** do projeto `doc-car-app`, adicione as variáveis acima. Depois de salvar, é preciso um **novo deploy** (as variáveis não afetam deploys já publicados) — basta mesclar qualquer PR em `main` para gerar um.
 
