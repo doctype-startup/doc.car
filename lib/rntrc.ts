@@ -1,4 +1,4 @@
-import { isApiBrasilConfigured } from "@/lib/crlv";
+import { isApiBrasilConfigured, mensagemSeguraApiBrasil } from "@/lib/crlv";
 
 export { isApiBrasilConfigured as isRntrcApiConfigured };
 
@@ -59,8 +59,9 @@ export async function consultarRntrc(filtro: FiltroRntrc): Promise<ConsultaRntrc
     );
     return {
       ok: false,
-      errorMessage:
-        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`,
+      errorMessage: mensagemSeguraApiBrasil(
+        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`
+      ),
     };
   }
 

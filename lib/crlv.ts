@@ -14,6 +14,29 @@ export const PRECO_CRLV_CENTAVOS = 6500;
 export const URL_CONSULTA_VEICULOS = "https://gateway.apibrasil.io/api/v2/consulta/veiculos/credits";
 const URL_CRLV = URL_CONSULTA_VEICULOS;
 
+/** Alguns erros da API Brasil (json.message/json.data.detail) expõem
+ * detalhes da nossa própria conta com o fornecedor — saldo da carteira
+ * DOC.CAR, valor de custo pago por consulta ("Saldo insuficiente para
+ * realizar a consulta! Valor da consulta: R$X,XX!") — que nunca devem
+ * chegar ao cliente final: revelam nosso custo/margem e, pior, parecem
+ * dizer que o saldo do CLIENTE está baixo quando na verdade é a conta da
+ * DOC.CAR no fornecedor que precisa de recarga. Quem chama já loga o JSON
+ * bruto completo pro time interno diagnosticar; isso só filtra o texto
+ * exibido na tela. */
+export function mensagemSeguraApiBrasil(
+  raw: string | undefined | null,
+  fallback = "Não foi possível completar a consulta no momento. Tente novamente em instantes."
+): string {
+  if (!raw) return fallback;
+  const normalizado = raw.toLowerCase();
+  const revelaContaInterna =
+    normalizado.includes("saldo") ||
+    normalizado.includes("tarifa") ||
+    normalizado.includes("cobrado") ||
+    normalizado.includes("cobrança");
+  return revelaContaInterna ? fallback : raw;
+}
+
 export type EmissaoCrlvResult =
   | { ok: true; pdfBase64: string }
   | { ok: false; errorMessage: string };
@@ -44,8 +67,9 @@ export async function emitirCrlv(placa: string, uf: string): Promise<EmissaoCrlv
     // quando existir.
     return {
       ok: false,
-      errorMessage:
-        json?.data?.detail || json?.message || `Emissão falhou (HTTP ${response.status}).`,
+      errorMessage: mensagemSeguraApiBrasil(
+        json?.data?.detail || json?.message || `Emissão falhou (HTTP ${response.status}).`
+      ),
     };
   }
 
@@ -54,7 +78,10 @@ export async function emitirCrlv(placa: string, uf: string): Promise<EmissaoCrlv
     console.error(
       `[crlv] resposta sem PDF (placa=${placa}, uf=${uf}): ${JSON.stringify(json)}`
     );
-    return { ok: false, errorMessage: json?.message || "CRLV-e não retornado pela API." };
+    return {
+      ok: false,
+      errorMessage: mensagemSeguraApiBrasil(json?.message, "CRLV-e não retornado pela API."),
+    };
   }
 
   return { ok: true, pdfBase64 };

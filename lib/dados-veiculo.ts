@@ -1,4 +1,4 @@
-import { isApiBrasilConfigured, URL_CONSULTA_VEICULOS } from "@/lib/crlv";
+import { isApiBrasilConfigured, mensagemSeguraApiBrasil, URL_CONSULTA_VEICULOS } from "@/lib/crlv";
 
 export const isPlacaApiConfigured = isApiBrasilConfigured;
 
@@ -229,8 +229,9 @@ export async function consultarVeiculoPorPlaca(
     return {
       ok: false,
       motivo: "http",
-      errorMessage:
-        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`,
+      errorMessage: mensagemSeguraApiBrasil(
+        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`
+      ),
     };
   }
 

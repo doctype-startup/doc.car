@@ -1,4 +1,4 @@
-import { isApiBrasilConfigured, URL_CONSULTA_VEICULOS } from "@/lib/crlv";
+import { isApiBrasilConfigured, mensagemSeguraApiBrasil, URL_CONSULTA_VEICULOS } from "@/lib/crlv";
 
 export { isApiBrasilConfigured };
 
@@ -172,8 +172,9 @@ export async function consultarAvulsa(
     );
     return {
       ok: false,
-      errorMessage:
-        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`,
+      errorMessage: mensagemSeguraApiBrasil(
+        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`
+      ),
     };
   }
 
