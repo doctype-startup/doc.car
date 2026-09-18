@@ -19,6 +19,13 @@ export const PRECO_AVULSO_CENTAVOS = 1690;
  * centavos. */
 export const PRECO_AVULSO_SIMPLES_CENTAVOS = 620;
 
+/** Preço de liberar o dossiê completo do proprietário (CPF/CNPJ, nome da
+ * mãe, telefones, endereços) na ficha da consulta simples — desconta da
+ * mesma cota de consulta avançada do plano quando disponível; cobrado
+ * avulso só quando a cota (e os créditos) já acabaram no período. Em
+ * centavos. */
+export const PRECO_PROPRIETARIO_AVULSO_CENTAVOS = 3290;
+
 export const PLANOS: Plano[] = [
   {
     id: "essencial",
