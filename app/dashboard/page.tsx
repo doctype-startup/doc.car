@@ -114,6 +114,12 @@ function DashboardContent() {
   const [proprietarioLiberado, setProprietarioLiberado] = useState(false);
   const [proprietarioLoading, setProprietarioLoading] = useState(false);
   const [proprietarioError, setProprietarioError] = useState("");
+  const [proprietarioSaldo, setProprietarioSaldo] = useState<{
+    cota: number;
+    usado: number;
+    origem: "cota" | "credito" | "avulso";
+    creditos: number;
+  } | null>(null);
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Incrementado a cada nova busca (runSearch/runFromCache) — uma resposta
@@ -170,6 +176,7 @@ function DashboardContent() {
     setAvulsasAvancada([]);
     setProprietarioLiberado(false);
     setProprietarioError("");
+    setProprietarioSaldo(null);
     setSaldoSimples(null);
     setFromCache(false);
     setShowToast(false);
@@ -268,6 +275,7 @@ function DashboardContent() {
       const payload = await response.json();
       if (response.ok) {
         setProprietarioLiberado(true);
+        setProprietarioSaldo(payload.saldo ?? null);
       } else {
         setProprietarioError(payload.error || "Não foi possível liberar os dados do proprietário.");
       }
@@ -305,6 +313,7 @@ function DashboardContent() {
       setAvulsasAvancada([]);
       setProprietarioLiberado(false);
       setProprietarioError("");
+      setProprietarioSaldo(null);
       setCpfCnpjCliente("");
       setSaldoSimples(null);
       setShowToast(false);
@@ -664,6 +673,13 @@ function DashboardContent() {
               <h3>
                 Dados do proprietário <span className="badge ok">Dados reais</span>
               </h3>
+              {proprietarioSaldo && proprietarioSaldo.origem !== "cota" && (
+                <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                  {proprietarioSaldo.origem === "credito"
+                    ? `Cota de consulta avançada do mês esgotada — essa liberação usou 1 crédito de recarga (restam ${proprietarioSaldo.creditos}).`
+                    : `Cota de consulta avançada do mês esgotada e sem crédito de recarga disponível — essa liberação foi cobrada avulsa (${currency.format(PRECO_PROPRIETARIO_AVULSO_CENTAVOS / 100)}).`}
+                </p>
+              )}
               <div className="grid-3">
                 {veiculoReal.proprietarioNome && (
                   <div className="kv">
