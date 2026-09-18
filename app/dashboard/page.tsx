@@ -99,6 +99,13 @@ function DashboardContent() {
   const [avancadaLoading, setAvancadaLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Incrementado a cada nova busca (runSearch/runFromCache) — uma resposta
+   * só é aplicada se ainda for da busca mais recente. Evita que uma
+   * requisição antiga e mais lenta (ex: duplo clique, clique num chip
+   * enquanto a busca anterior ainda carrega) sobrescreva o resultado de uma
+   * busca mais nova que já terminou, deixando erro e dado bom juntos na
+   * tela. */
+  const requestIdRef = useRef(0);
   const [consultasHoje, setConsultasHoje] = useState<number | null>(null);
   const [placasRecentes, setPlacasRecentes] = useState<string[]>([]);
   const [saldoSimples, setSaldoSimples] = useState<{
@@ -135,6 +142,8 @@ function DashboardContent() {
   useGuardiaoResumo(resumoGuardiao);
 
   async function runSearch(value: string) {
+    const requestId = ++requestIdRef.current;
+
     setError("");
     setVeiculoReal(null);
     setRealError("");
@@ -164,6 +173,7 @@ function DashboardContent() {
     try {
       const response = await fetch(`/api/veiculo?placa=${encodeURIComponent(data.placa)}`);
       const payload = await response.json();
+      if (requestIdRef.current !== requestId) return;
       if (response.ok) {
         setVeiculoReal(payload.data);
         setSaldoSimples(payload.saldo ?? null);
@@ -173,9 +183,11 @@ function DashboardContent() {
         setRealError(payload.error || "Consulta real indisponível.");
       }
     } catch {
+      if (requestIdRef.current !== requestId) return;
       setRealError("Não foi possível contatar o provedor de dados.");
     }
 
+    if (requestIdRef.current !== requestId) return;
     setLoading(false);
   }
 
@@ -204,6 +216,8 @@ function DashboardContent() {
   }
 
   async function runFromCache(value: string) {
+    const requestId = ++requestIdRef.current;
+
     if (!isValidPlaca(value)) {
       void runSearch(value);
       return;
@@ -220,6 +234,7 @@ function DashboardContent() {
         return;
       }
       const payload = await response.json();
+      if (requestIdRef.current !== requestId) return;
 
       setError("");
       setRealError("");
@@ -322,6 +337,7 @@ function DashboardContent() {
                   key={placaRecente}
                   type="button"
                   className="chip"
+                  disabled={loading}
                   onClick={() => handleExampleClick(placaRecente)}
                 >
                   {placaRecente}
@@ -336,6 +352,7 @@ function DashboardContent() {
                   key={exemplo}
                   type="button"
                   className="chip"
+                  disabled={loading}
                   onClick={() => handleExampleClick(exemplo)}
                 >
                   {exemplo}
@@ -429,6 +446,7 @@ function DashboardContent() {
                 <button
                   type="button"
                   className="print-button no-print"
+                  disabled={loading}
                   onClick={() => void runSearch(veiculoReal.placa)}
                 >
                   Consultar novamente (gasta cota)
