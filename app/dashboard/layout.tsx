@@ -41,6 +41,17 @@ export default async function DashboardLayout({
     redirect("/assinar");
   }
 
+  // Marca a atividade do despachante — usado pelo painel do admin pra
+  // mostrar "Online" (visto nos últimos minutos) e "Último acesso". Não
+  // bloqueia a navegação se falhar.
+  void supabase
+    .from("profiles")
+    .update({ last_seen_at: new Date().toISOString() })
+    .eq("id", user.id)
+    .then(({ error }) => {
+      if (error) console.error(`[dashboard-layout] falha ao marcar last_seen_at: ${error.message}`);
+    });
+
   const plano = getPlanoPorPriceId(subscription?.price_id);
   const inicioDoPeriodo =
     subscription?.current_period_start ||

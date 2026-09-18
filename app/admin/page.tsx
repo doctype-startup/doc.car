@@ -99,7 +99,7 @@ export default async function AdminPage() {
 
   const { data: despachantes } = await admin
     .from("profiles")
-    .select("id, name, email, created_at")
+    .select("id, name, email, created_at, last_seen_at")
     .order("created_at", { ascending: false });
 
   const { data: subscriptions } = await admin
@@ -109,6 +109,58 @@ export default async function AdminPage() {
     );
 
   const subsPorUsuario = new Map((subscriptions ?? []).map((s) => [s.user_id, s]));
+
+  // Quantidades e saldos — uma busca por tabela pra todo mundo, agregada em
+  // memória, em vez de uma consulta por despachante.
+  const agora = new Date();
+  const [
+    { data: usoSimples },
+    { data: usoAvancada },
+    { data: usoAvulsas },
+    { data: recargasSimplesAtivas },
+    { data: recargasAvancadaAtivas },
+    { data: saldosAvulsas },
+  ] = await Promise.all([
+    admin.from("simples_usage").select("user_id"),
+    admin.from("avancada_usage").select("user_id"),
+    admin.from("consultas_avulsas_uso").select("user_id"),
+    admin
+      .from("recargas_simples")
+      .select("user_id, creditos_restantes")
+      .gt("creditos_restantes", 0)
+      .gt("expira_em", agora.toISOString()),
+    admin
+      .from("recargas_avancada")
+      .select("user_id, creditos_restantes")
+      .gt("creditos_restantes", 0)
+      .gt("expira_em", agora.toISOString()),
+    admin.from("saldo_avulsas").select("user_id, saldo_centavos"),
+  ]);
+
+  function contarPorUsuario(linhas: { user_id: string }[] | null) {
+    const mapa = new Map<string, number>();
+    for (const l of linhas ?? []) {
+      mapa.set(l.user_id, (mapa.get(l.user_id) ?? 0) + 1);
+    }
+    return mapa;
+  }
+
+  function somarPorUsuario(linhas: { user_id: string; [campo: string]: unknown }[] | null, campo: string) {
+    const mapa = new Map<string, number>();
+    for (const l of linhas ?? []) {
+      mapa.set(l.user_id, (mapa.get(l.user_id) ?? 0) + Number(l[campo] ?? 0));
+    }
+    return mapa;
+  }
+
+  const qtdSimplesPorUsuario = contarPorUsuario(usoSimples);
+  const qtdAvancadaPorUsuario = contarPorUsuario(usoAvancada);
+  const qtdAvulsasPorUsuario = contarPorUsuario(usoAvulsas);
+  const saldoSimplesPorUsuario = somarPorUsuario(recargasSimplesAtivas, "creditos_restantes");
+  const saldoAvancadaPorUsuario = somarPorUsuario(recargasAvancadaAtivas, "creditos_restantes");
+  const saldoAvulsasPorUsuario = new Map(
+    (saldosAvulsas ?? []).map((s) => [s.user_id, s.saldo_centavos as number])
+  );
 
   // Faturas — busca uma vez pra conta inteira do Stripe e agrupa por
   // cliente, em vez de uma chamada por despachante.
@@ -157,7 +209,31 @@ export default async function AdminPage() {
       const faturas = sub?.stripe_customer_id
         ? (faturasPorCliente.get(sub.stripe_customer_id) ?? [])
         : [];
-      return { despachante: d, sub, plano, uso, faturas };
+      const gastoTotal = faturas
+        .filter((f) => f.status === "paid")
+        .reduce((soma, f) => soma + f.valor, 0);
+      const ultimoAcesso = d.last_seen_at ? new Date(d.last_seen_at) : null;
+      const online = ultimoAcesso ? agora.getTime() - ultimoAcesso.getTime() < 5 * 60 * 1000 : false;
+      return {
+        despachante: d,
+        sub,
+        plano,
+        uso,
+        faturas,
+        gastoTotal,
+        ultimoAcesso,
+        online,
+        quantidades: {
+          simples: qtdSimplesPorUsuario.get(d.id) ?? 0,
+          avancada: qtdAvancadaPorUsuario.get(d.id) ?? 0,
+          avulsas: qtdAvulsasPorUsuario.get(d.id) ?? 0,
+        },
+        saldos: {
+          simples: saldoSimplesPorUsuario.get(d.id) ?? 0,
+          avancada: saldoAvancadaPorUsuario.get(d.id) ?? 0,
+          avulsasCentavos: saldoAvulsasPorUsuario.get(d.id) ?? 0,
+        },
+      };
     })
   );
 
@@ -285,11 +361,16 @@ export default async function AdminPage() {
                 <th>Plano</th>
                 <th>Status</th>
                 <th>Uso no período</th>
+                <th>Consultas</th>
+                <th>Saldos disponíveis</th>
+                <th>Gastos</th>
+                <th>Acesso</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {linhas.map(({ despachante, sub, plano, uso, faturas }) => {
+              {linhas.map(
+                ({ despachante, sub, plano, uso, faturas, gastoTotal, ultimoAcesso, online, quantidades, saldos }) => {
                 const temAcesso = sub?.status === "active" || sub?.status === "trialing";
                 const ehManual = temAcesso && !sub?.stripe_subscription_id;
                 const status = sub?.status ? STATUS_LABEL[sub.status] : undefined;
@@ -361,6 +442,29 @@ export default async function AdminPage() {
                       )}
                     </td>
                     <td>{plano ? `${uso}/${plano.cota}` : "—"}</td>
+                    <td>
+                      <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span>Simples: {quantidades.simples}</span>
+                        <span>Avançada: {quantidades.avancada}</span>
+                        <span>Avulsas: {quantidades.avulsas}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <span>Simples: {saldos.simples} créditos</span>
+                        <span>Avançada: {saldos.avancada} créditos</span>
+                        <span>Avulsas: {currency.format(saldos.avulsasCentavos / 100)}</span>
+                      </div>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{currency.format(gastoTotal)}</td>
+                    <td>
+                      <span className={`badge ${online ? "ok" : "neutral"}`}>
+                        {online ? "Online" : "Offline"}
+                      </span>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                        {ultimoAcesso ? dataHora.format(ultimoAcesso) : "Nunca acessou"}
+                      </div>
+                    </td>
                     <td>
                       {temAcesso ? (
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
