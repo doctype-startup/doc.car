@@ -1,8 +1,19 @@
-import { isApiBrasilConfigured, URL_CONSULTA_VEICULOS } from "@/lib/crlv";
+import { isApiBrasilConfigured, mensagemSeguraApiBrasil, URL_CONSULTA_VEICULOS } from "@/lib/crlv";
+import { PRECO_AVULSO_SIMPLES_CENTAVOS } from "@/lib/plans";
 
 export const isPlacaApiConfigured = isApiBrasilConfigured;
 
 const token = process.env.APIBRASIL_TOKEN || "";
+
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Mensagem de saldo insuficiente mostrada ao cliente quando a API Brasil
+ * recusa a consulta por saldo — usa o preço avulso real cobrado do
+ * cliente (não o custo interno de fornecedor, que mensagemSeguraApiBrasil
+ * já filtra da resposta crua). */
+const MENSAGEM_SALDO_INSUFICIENTE_SIMPLES = `Saldo insuficiente para realizar a consulta! Valor da consulta: ${currency.format(
+  PRECO_AVULSO_SIMPLES_CENTAVOS / 100
+)}!`;
 
 export type LeituraQuilometragem = {
   km: number;
@@ -229,8 +240,10 @@ export async function consultarVeiculoPorPlaca(
     return {
       ok: false,
       motivo: "http",
-      errorMessage:
+      errorMessage: mensagemSeguraApiBrasil(
         json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`,
+        MENSAGEM_SALDO_INSUFICIENTE_SIMPLES
+      ),
     };
   }
 

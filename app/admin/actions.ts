@@ -5,7 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getPlanoPorId, PLANO_TESTE } from "@/lib/plans";
-import { expirarCreditosPorCancelamento } from "@/lib/creditos";
+import { expirarCreditosPorCancelamento, concederCreditoManual } from "@/lib/creditos";
+import { concederCreditoManualAvancada } from "@/lib/creditos-avancada";
+import { concederSaldoAvulsasManual } from "@/lib/saldo-avulsas";
 
 async function exigirAdmin() {
   const supabase = await createClient();
@@ -245,6 +247,40 @@ export async function criarTeste(formData: FormData) {
     },
     { onConflict: "user_id" }
   );
+
+  revalidatePath("/admin");
+}
+
+/** Concede crédito direto pra um despachante, sem passar pelo Stripe — pra
+ * cortesia, compensação por bug, ou qualquer motivo que não seja uma
+ * compra real. `tipo` escolhe qual das três carteiras recebe o crédito;
+ * pra "avulsas" a quantidade é em reais (convertida pra centavos aqui),
+ * pras outras duas é a quantidade de consultas. `bonus` só marca a
+ * origem do crédito pra auditoria — não muda como ele é gasto. */
+export async function concederCreditoManualAdmin(userId: string, formData: FormData) {
+  await exigirAdmin();
+
+  const tipo = String(formData.get("tipo") || "");
+  const quantidade = Number(formData.get("quantidade"));
+  const bonus = formData.get("bonus") === "on";
+
+  if (!Number.isFinite(quantidade) || quantidade <= 0) {
+    throw new Error("Informe uma quantidade válida.");
+  }
+
+  if (tipo === "simples") {
+    await concederCreditoManual({ userId, creditos: Math.round(quantidade), bonus });
+  } else if (tipo === "avancada") {
+    await concederCreditoManualAvancada({ userId, creditos: Math.round(quantidade), bonus });
+  } else if (tipo === "avulsas") {
+    await concederSaldoAvulsasManual({
+      userId,
+      valorCentavos: Math.round(quantidade * 100),
+      bonus,
+    });
+  } else {
+    throw new Error("Tipo de crédito inválido.");
+  }
 
   revalidatePath("/admin");
 }

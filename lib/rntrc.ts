@@ -1,8 +1,14 @@
-import { isApiBrasilConfigured } from "@/lib/crlv";
+import { isApiBrasilConfigured, mensagemSeguraApiBrasil } from "@/lib/crlv";
+import { PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
 
 export { isApiBrasilConfigured as isRntrcApiConfigured };
 
 const token = process.env.APIBRASIL_TOKEN || "";
+
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const MENSAGEM_SALDO_INSUFICIENTE = `Saldo insuficiente para realizar a consulta! Valor da consulta: ${currency.format(
+  PRECO_AVULSO_CENTAVOS / 100
+)}!`;
 
 /** Mesmo gateway/token da API Brasil já usado pro CRLV-e (lib/crlv.ts) — só
  * a rota muda. Consulta o RNTRC (Registro Nacional de Transportadores
@@ -59,8 +65,10 @@ export async function consultarRntrc(filtro: FiltroRntrc): Promise<ConsultaRntrc
     );
     return {
       ok: false,
-      errorMessage:
+      errorMessage: mensagemSeguraApiBrasil(
         json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`,
+        MENSAGEM_SALDO_INSUFICIENTE
+      ),
     };
   }
 
