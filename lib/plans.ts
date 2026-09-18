@@ -12,12 +12,12 @@ export type Plano = {
 
 /** Preço da consulta avançada avulsa, cobrada quando o usuário estoura a
  * cota do plano no período. Em centavos. */
-export const PRECO_AVULSO_CENTAVOS = 1690;
+export const PRECO_AVULSO_CENTAVOS = 4760;
 
 /** Preço da consulta simples avulsa, cobrada quando o usuário estoura a
  * cota do plano no período e não tem crédito de recarga disponível. Em
  * centavos. */
-export const PRECO_AVULSO_SIMPLES_CENTAVOS = 620;
+export const PRECO_AVULSO_SIMPLES_CENTAVOS = 1290;
 
 /** Preço de liberar o dossiê completo do proprietário (CPF/CNPJ, nome da
  * mãe, telefones, endereços) na ficha da consulta simples — desconta da
@@ -76,7 +76,7 @@ export type PacoteRecarga = {
 export const CREDITOS_VALIDADE_MESES = 6;
 
 export const PACOTES_RECARGA: PacoteRecarga[] = [
-  { id: "recarga-50", tipo: "simples", creditos: 50, precoCentavos: 26500 },
+  { id: "recarga-50", tipo: "simples", creditos: 50, precoCentavos: 47900 },
   { id: "recarga-100", tipo: "simples", creditos: 100, precoCentavos: 41000 },
 ];
 
