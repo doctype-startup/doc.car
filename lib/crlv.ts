@@ -7,10 +7,12 @@ export const PRECO_CRLV_CENTAVOS = 6500;
 
 /** Mesmo endpoint atende vários tipos de consulta veicular da API Brasil —
  * o campo "tipo" no corpo da requisição escolhe qual (aqui, "crlve" pede a
- * emissão do CRLV-e). Recurso pago à parte (R$65 avulso via Stripe),
- * separado da consulta de dados do veículo feita em lib/dados-veiculo.ts,
- * que usa outro provedor. */
-const URL_CRLV = "https://gateway.apibrasil.io/api/v2/consulta/veiculos/credits";
+ * emissão do CRLV-e; lib/proprietario.ts reaproveita essa mesma URL com
+ * outro "tipo"). Recurso pago à parte (R$65 avulso via Stripe), separado da
+ * consulta de dados do veículo feita em lib/dados-veiculo.ts, que usa outro
+ * provedor. */
+export const URL_CONSULTA_VEICULOS = "https://gateway.apibrasil.io/api/v2/consulta/veiculos/credits";
+const URL_CRLV = URL_CONSULTA_VEICULOS;
 
 export type EmissaoCrlvResult =
   | { ok: true; pdfBase64: string }
