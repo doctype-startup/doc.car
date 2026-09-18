@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, FormEvent, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   isValidPlaca,
   lookupVehicle,
@@ -1258,7 +1259,15 @@ function DashboardContent() {
                   ))}
                 </div>
               ) : (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>{resultado.errorMessage}</p>
+                <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                  {resultado.errorMessage}
+                  {resultado.errorMessage === "Saldo insuficiente." && (
+                    <>
+                      {" "}
+                      <Link href="/dashboard/consultas-avulsas/recarga">Recarregar saldo</Link>
+                    </>
+                  )}
+                </p>
               )}
             </div>
           ))}
