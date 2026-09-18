@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CONSULTAS_AVULSAS } from "@/lib/consultas-avulsas";
 
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
 // Todo serviço "avançada" ganha link próprio no menu — os que também
 // entram no combo automático de Consultar placa (incluirNoCombo !== false)
 // aparecem nos dois lugares.
@@ -53,16 +55,29 @@ export default function ConsultasAvulsasMenu() {
           </div>
           <div className="consultas-avulsas-grupo">
             <span className="consultas-avulsas-titulo">Consulta avançada</span>
-            <Link href="/dashboard" onClick={() => setAberto(false)}>
-              Combo completo em Consultar placa
+            <Link href="/dashboard" className="consultas-avulsas-item" onClick={() => setAberto(false)}>
+              <span>Combo completo em Consultar placa</span>
+              <span className="consultas-avulsas-preco consultas-avulsas-preco-variavel">
+                vários preços
+              </span>
+            </Link>
+            <Link href="/dashboard/crm" className="consultas-avulsas-item" onClick={() => setAberto(false)}>
+              <span>Histórico de Proprietário</span>
+              <span className="consultas-avulsas-preco consultas-avulsas-preco-variavel">
+                cota do plano
+              </span>
             </Link>
             {SERVICOS_AVANCADA.map((servico) => (
               <Link
                 key={servico.id}
                 href={`/dashboard/consultas-avulsas/${servico.id}`}
+                className="consultas-avulsas-item"
                 onClick={() => setAberto(false)}
               >
-                {servico.nome}
+                <span>{servico.nome}</span>
+                <span className="consultas-avulsas-preco">
+                  {currency.format(servico.precoCentavos / 100)}
+                </span>
               </Link>
             ))}
           </div>
