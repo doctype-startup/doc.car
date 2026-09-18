@@ -15,6 +15,14 @@ export type ConsultaAvulsaServico = {
    * serviço só muda esse campo. */
   tipoApi: string;
   precoCentavos: number;
+  /** Só relevante pro grupo "avancada". Por padrão (undefined/true), o
+   * serviço entra automaticamente no combo disparado pelo botão "Consultar
+   * Renavam..." da página Consultar placa (app/api/consultas-avulsas/
+   * avancada). Coloque `false` pra um serviço que precisa ficar de fora do
+   * combo — ex: já é chamado de graça em outro fluxo do app (ver
+   * "endereco-telefone-por-placa", que a consulta simples já busca) — e
+   * aparecer só como item próprio no menu "Consultas Avulsas". */
+  incluirNoCombo?: boolean;
 };
 
 /** Registro central dos serviços do menu "Consultas Avulsas" — cada um
@@ -37,6 +45,38 @@ export const CONSULTAS_AVULSAS: ConsultaAvulsaServico[] = [
     tipoApi: "agregados-renavam",
     precoCentavos: 420,
   },
+  {
+    id: "agregados-simples",
+    nome: "Agregados Simples",
+    grupo: "simples",
+    tipoApi: "agregados-simples",
+    precoCentavos: 190,
+  },
+  {
+    id: "estadual",
+    nome: "Base Estadual",
+    grupo: "avancada",
+    tipoApi: "estadual",
+    precoCentavos: 698,
+  },
+  {
+    id: "nacional",
+    nome: "Base Nacional",
+    grupo: "avancada",
+    tipoApi: "nacional",
+    precoCentavos: 740,
+  },
+  {
+    id: "endereco-telefone-por-placa",
+    nome: "Endereço e Telefone do Proprietário",
+    grupo: "avancada",
+    tipoApi: "endereco-telefone-por-placa",
+    precoCentavos: 3200,
+    // A consulta simples (lib/dados-veiculo.ts) já chama esse mesmo "tipo"
+    // de graça em toda busca — fica de fora do combo automático pra não
+    // cobrar duas vezes a mesma API. Só aparece como item próprio no menu.
+    incluirNoCombo: false,
+  },
 ];
 
 export function getConsultaAvulsaPorId(id: string | null | undefined) {
@@ -46,6 +86,14 @@ export function getConsultaAvulsaPorId(id: string | null | undefined) {
 
 export function getConsultasAvulsasPorGrupo(grupo: GrupoConsultaAvulsa) {
   return CONSULTAS_AVULSAS.filter((servico) => servico.grupo === grupo);
+}
+
+/** Serviços "avançada" que devem disparar junto no combo automático da
+ * página Consultar placa (ver app/api/consultas-avulsas/avancada). */
+export function getConsultasAvulsasParaCombo() {
+  return CONSULTAS_AVULSAS.filter(
+    (servico) => servico.grupo === "avancada" && servico.incluirNoCombo !== false
+  );
 }
 
 /** Deixa a chave da API (snake_case) mais legível pra exibição genérica —

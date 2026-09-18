@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   consultarAvulsa,
-  getConsultasAvulsasPorGrupo,
+  getConsultasAvulsasParaCombo,
   isApiBrasilConfigured,
 } from "@/lib/consultas-avulsas";
 import { debitarSaldoAvulsas, estornarSaldoAvulsas, getSaldoAvulsas } from "@/lib/saldo-avulsas";
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Informe a placa." }, { status: 400 });
   }
 
-  const servicos = getConsultasAvulsasPorGrupo("avancada");
+  const servicos = getConsultasAvulsasParaCombo();
   if (servicos.length === 0) {
     return NextResponse.json(
       { error: "Nenhum serviço de consulta avançada cadastrado ainda." },
