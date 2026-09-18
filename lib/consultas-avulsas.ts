@@ -3,6 +3,7 @@ import { isApiBrasilConfigured, mensagemSeguraApiBrasil, URL_CONSULTA_VEICULOS }
 export { isApiBrasilConfigured };
 
 const token = process.env.APIBRASIL_TOKEN || "";
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export type GrupoConsultaAvulsa = "simples" | "avancada";
 
@@ -149,7 +150,8 @@ export type ResultadoConsultaAvulsa =
  * exibida é genérica (ver app/dashboard/consultas-avulsas/[servico]). */
 export async function consultarAvulsa(
   tipoApi: string,
-  placa: string
+  placa: string,
+  precoCentavos: number
 ): Promise<ResultadoConsultaAvulsa> {
   if (!token) {
     return { ok: false, errorMessage: "APIBRASIL_TOKEN não configurado" };
@@ -173,7 +175,8 @@ export async function consultarAvulsa(
     return {
       ok: false,
       errorMessage: mensagemSeguraApiBrasil(
-        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`
+        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`,
+        `Saldo insuficiente para realizar a consulta! Valor da consulta: ${currency.format(precoCentavos / 100)}!`
       ),
     };
   }

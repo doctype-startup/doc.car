@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const resultado = await consultarAvulsa(servico.tipoApi, placa);
+  const resultado = await consultarAvulsa(servico.tipoApi, placa, servico.precoCentavos);
 
   console.log(`[consultas-avulsas] servico=${servico.id} placa=${placa} ok=${resultado.ok}`);
 

@@ -14,6 +14,11 @@ export const PRECO_CRLV_CENTAVOS = 6500;
 export const URL_CONSULTA_VEICULOS = "https://gateway.apibrasil.io/api/v2/consulta/veiculos/credits";
 const URL_CRLV = URL_CONSULTA_VEICULOS;
 
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const MENSAGEM_SALDO_INSUFICIENTE_CRLV = `Saldo insuficiente para realizar a consulta! Valor da consulta: ${currency.format(
+  PRECO_CRLV_CENTAVOS / 100
+)}!`;
+
 /** Alguns erros da API Brasil (json.message/json.data.detail) expõem
  * detalhes da nossa própria conta com o fornecedor — saldo da carteira
  * DOC.CAR, valor de custo pago por consulta ("Saldo insuficiente para
@@ -68,7 +73,8 @@ export async function emitirCrlv(placa: string, uf: string): Promise<EmissaoCrlv
     return {
       ok: false,
       errorMessage: mensagemSeguraApiBrasil(
-        json?.data?.detail || json?.message || `Emissão falhou (HTTP ${response.status}).`
+        json?.data?.detail || json?.message || `Emissão falhou (HTTP ${response.status}).`,
+        MENSAGEM_SALDO_INSUFICIENTE_CRLV
       ),
     };
   }

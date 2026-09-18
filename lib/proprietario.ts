@@ -1,8 +1,14 @@
 import { isApiBrasilConfigured, mensagemSeguraApiBrasil, URL_CONSULTA_VEICULOS } from "@/lib/crlv";
+import { PRECO_CRM_AVULSO_CENTAVOS } from "@/lib/plans";
 
 export { isApiBrasilConfigured };
 
 const token = process.env.APIBRASIL_TOKEN || "";
+
+const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const MENSAGEM_SALDO_INSUFICIENTE = `Saldo insuficiente para realizar a consulta! Valor da consulta: ${currency.format(
+  PRECO_CRM_AVULSO_CENTAVOS / 100
+)}!`;
 
 export type ProprietarioAtual = {
   placa: string;
@@ -56,7 +62,8 @@ export async function consultarProprietarioAtual(
     return {
       ok: false,
       errorMessage: mensagemSeguraApiBrasil(
-        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`
+        json?.data?.detail || json?.message || `Consulta falhou (HTTP ${response.status}).`,
+        MENSAGEM_SALDO_INSUFICIENTE
       ),
     };
   }

@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         };
       }
 
-      const resultado = await consultarAvulsa(servico.tipoApi, placa);
+      const resultado = await consultarAvulsa(servico.tipoApi, placa, servico.precoCentavos);
 
       if (!resultado.ok) {
         await estornarSaldoAvulsas(user.id, servico.precoCentavos);
