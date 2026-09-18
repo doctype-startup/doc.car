@@ -279,6 +279,49 @@ function extrairFichaTecnica(data: Obj): CampoAvulsa[] {
   );
 }
 
+function extrairAgregadosV2(data: Obj): CampoAvulsa[] {
+  const codigoFipe = Array.isArray(data.codigoFipe) ? (data.codigoFipe as Obj[]) : [];
+  return campos(
+    campo("Placa", data.placa),
+    campo("Marca/Modelo", data.marcaModelo),
+    campo("Marca", data.marca),
+    campo("Modelo", data.modelo),
+    campo("Família", data.familia),
+    campo("Ano de fabricação", data.anoFabricacao),
+    campo("Ano do modelo", data.anoModelo),
+    campo("Cor", data.corVeiculo),
+    campo("Combustível", data.combustivel || data.codigoCombustivel),
+    campo("Categoria", data.categoria),
+    campo("Espécie", data.especieVeiculo),
+    campo("Tipo de veículo", data.tipoVeiculo),
+    campo("Carroceria", data.tipoCarroceria),
+    campo("Nº de carroceria", data.numCarroceria),
+    campo("Câmbio", data.caixaCambio),
+    campo("Cilindradas", data.cilindradas),
+    campo("Potência", data.potencia),
+    campo("Passageiros", data.capacidadePassageiro),
+    campo("Capacidade de carga", data.capacidadeCarga),
+    campo("Capacidade máx. de tração", data.capMaxTracao),
+    campo("Chassi", data.chassi),
+    campo("Nº do motor", data.numMotor),
+    campo("Eixos", data.eixos),
+    campo("Diferencial eixo traseiro", data.eixoTraseiroDif),
+    campo("Nº do terceiro eixo", data.numTerceiroEixo),
+    campo("PBT", data.pbt),
+    campo("CMT", data.cmt),
+    campo(
+      "Município/UF",
+      data.cidade && data.uf ? `${data.cidade}/${data.uf}` : data.cidade || data.uf
+    ),
+    campo("Nacionalidade", data.nacionalidade),
+    campo("Procedência", data.procedencia),
+    campo("Documento faturado", data.tipoDocFaturado),
+    campo("UF faturado", data.ufFaturado),
+    campo("Registro DI", data.registroDi),
+    campo("Código FIPE", codigoFipe.map((c) => c?.codigo).filter(Boolean).join(", "))
+  );
+}
+
 const EXTRATORES: Record<string, (data: Obj) => CampoAvulsa[]> = {
   "agregados-simples": extrairAgregadosSimples,
   "agregados-renavam": extrairAgregadosRenavam,
@@ -286,6 +329,7 @@ const EXTRATORES: Record<string, (data: Obj) => CampoAvulsa[]> = {
   nacional: extrairBaseNacional,
   "endereco-telefone-por-placa": extrairEnderecoTelefone,
   "ficha-tecnica": extrairFichaTecnica,
+  "agregados-v2": extrairAgregadosV2,
 };
 
 /** Extrai campos legíveis do retorno de uma consulta avulsa, usando o
