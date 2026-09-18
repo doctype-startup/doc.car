@@ -202,6 +202,16 @@ function sanitizeAvancada(raw: any): ConsultaAvancada {
   };
 }
 
+async function buscarAvancada(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function consultarAvancadaPorPlaca(
   placa: string
 ): Promise<ConsultaAvancadaResult> {
@@ -213,7 +223,24 @@ export async function consultarAvancadaPorPlaca(
   url.searchParams.set("token", token);
   url.searchParams.set("placa", placa);
 
-  const response = await fetch(url.toString());
+  // O provedor (consultaplacadebitos.processalead.site) tem instabilidade
+  // conhecida — timeouts/522 passageiros. Tenta de novo uma vez antes de
+  // desistir, em vez de propagar a primeira falha direto pro usuário.
+  let response: Response;
+  try {
+    response = await buscarAvancada(url.toString());
+    if (!response.ok) response = await buscarAvancada(url.toString());
+  } catch {
+    try {
+      response = await buscarAvancada(url.toString());
+    } catch {
+      return {
+        ok: false,
+        errorMessage: "O provedor de consulta avançada está indisponível no momento. Tente novamente em instantes.",
+      };
+    }
+  }
+
   const json = await response.json().catch(() => null);
 
   if (!response.ok) {
