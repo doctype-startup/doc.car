@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { consultarProprietarioAtual, isApiBrasilConfigured } from "@/lib/proprietario";
 import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
-import { getPlanoPorPriceId, PRECO_AVULSO_CENTAVOS } from "@/lib/plans";
+import { getPlanoPorPriceId, PRECO_CRM_AVULSO_CENTAVOS } from "@/lib/plans";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { consumirCreditoAvancada, getSaldoCreditosAvancada } from "@/lib/creditos-avancada";
 
@@ -25,9 +25,9 @@ async function cobrarAvulso(stripeCustomerId: string | null, placa: string) {
   try {
     await getStripe().invoiceItems.create({
       customer: stripeCustomerId,
-      amount: PRECO_AVULSO_CENTAVOS,
+      amount: PRECO_CRM_AVULSO_CENTAVOS,
       currency: "brl",
-      description: `Consulta avançada avulsa (CRM — proprietário) — placa ${placa}`,
+      description: `Histórico de Proprietário avulso — placa ${placa}`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "erro desconhecido";
