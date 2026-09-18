@@ -91,6 +91,13 @@ export const CONSULTAS_AVULSAS: ConsultaAvulsaServico[] = [
     tipoApi: "agregados-v2",
     precoCentavos: 500,
   },
+  {
+    id: "renainf",
+    nome: "Consultar Multas",
+    grupo: "avancada",
+    tipoApi: "renainf",
+    precoCentavos: 890,
+  },
 ];
 
 export function getConsultaAvulsaPorId(id: string | null | undefined) {

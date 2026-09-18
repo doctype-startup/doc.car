@@ -11,7 +11,7 @@ const TABS = [
   { href: "/dashboard/meus-veiculos", label: "Meus Veículos" },
   { href: "/dashboard/documentos", label: "Documentos" },
   { href: "/dashboard/logistica", label: "Logística" },
-  { href: "/dashboard/crm", label: "CRM" },
+  { href: "/dashboard/crm", label: "Histórico de Proprietário" },
 ];
 
 export default function NavTabs({ isAdmin = false }: { isAdmin?: boolean }) {
