@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
+import { extrairCamposAvulsa } from "@/lib/consultas-avulsas-extratores";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -68,10 +69,15 @@ export default function ConsultarAvulsaForm({
         <div className="card" style={{ maxWidth: 560 }}>
           <span className="label">Resultado</span>
           <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-            {Object.entries(resultado).map(([chave, valor]) => (
-              <div key={chave} className="kv">
-                <span className="label">{formatarLabelAvulsa(chave)}</span>
-                <span className="value">{formatarValorAvulsa(valor)}</span>
+            {(extrairCamposAvulsa(servicoId, resultado) ??
+              Object.entries(resultado).map(([chave, valor]) => ({
+                label: formatarLabelAvulsa(chave),
+                valor: formatarValorAvulsa(valor),
+              }))
+            ).map((campo) => (
+              <div key={campo.label} className="kv">
+                <span className="label">{campo.label}</span>
+                <span className="value">{campo.valor}</span>
               </div>
             ))}
           </div>
