@@ -41,6 +41,27 @@ export function getConsultasAvulsasPorGrupo(grupo: GrupoConsultaAvulsa) {
   return CONSULTAS_AVULSAS.filter((servico) => servico.grupo === grupo);
 }
 
+/** Deixa a chave da API (snake_case) mais legível pra exibição genérica —
+ * cada serviço tem um formato de resposta diferente, então a ficha não tem
+ * como ter um label específico por campo (ao contrário das consultas já
+ * sanitizadas de lib/dados-veiculo.ts e lib/proprietario.ts). */
+export function formatarLabelAvulsa(chave: string) {
+  return chave.replace(/_/g, " ").replace(/\b\w/g, (letra) => letra.toUpperCase());
+}
+
+export function formatarValorAvulsa(valor: unknown): string {
+  if (valor === null || valor === undefined || valor === "") return "—";
+  if (Array.isArray(valor)) {
+    return valor.length > 0 ? valor.map((item) => formatarValorAvulsa(item)).join(", ") : "—";
+  }
+  if (typeof valor === "object") {
+    return Object.entries(valor as Record<string, unknown>)
+      .map(([chave, item]) => `${formatarLabelAvulsa(chave)}: ${formatarValorAvulsa(item)}`)
+      .join(" · ");
+  }
+  return String(valor);
+}
+
 export type ResultadoConsultaAvulsa =
   | { ok: true; data: Record<string, unknown> }
   | { ok: false; errorMessage: string };

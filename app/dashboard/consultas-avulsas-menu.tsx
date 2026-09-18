@@ -47,8 +47,8 @@ export default function ConsultasAvulsasMenu() {
           </div>
           <div className="consultas-avulsas-grupo">
             <span className="consultas-avulsas-titulo">Consulta avançada</span>
-            <Link href="/dashboard/consultas-avulsas/avancada" onClick={() => setAberto(false)}>
-              Consultar várias APIs
+            <Link href="/dashboard" onClick={() => setAberto(false)}>
+              Já incluída em Consultar placa
             </Link>
           </div>
         </div>

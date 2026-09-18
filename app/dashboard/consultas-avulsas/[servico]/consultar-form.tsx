@@ -1,31 +1,9 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import { formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-/** Deixa a chave da API (snake_case) mais legível pra exibição genérica —
- * cada serviço tem um formato de resposta diferente, então a ficha não tem
- * como ter um label específico por campo (ao contrário das consultas
- * já sanitizadas de lib/dados-veiculo.ts e lib/proprietario.ts). */
-function formatarLabel(chave: string) {
-  return chave
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letra) => letra.toUpperCase());
-}
-
-function formatarValor(valor: unknown): string {
-  if (valor === null || valor === undefined || valor === "") return "—";
-  if (Array.isArray(valor)) {
-    return valor.length > 0 ? valor.map((item) => formatarValor(item)).join(", ") : "—";
-  }
-  if (typeof valor === "object") {
-    return Object.entries(valor as Record<string, unknown>)
-      .map(([chave, item]) => `${formatarLabel(chave)}: ${formatarValor(item)}`)
-      .join(" · ");
-  }
-  return String(valor);
-}
 
 export default function ConsultarAvulsaForm({
   servicoId,
@@ -92,8 +70,8 @@ export default function ConsultarAvulsaForm({
           <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             {Object.entries(resultado).map(([chave, valor]) => (
               <div key={chave} className="kv">
-                <span className="label">{formatarLabel(chave)}</span>
-                <span className="value">{formatarValor(valor)}</span>
+                <span className="label">{formatarLabelAvulsa(chave)}</span>
+                <span className="value">{formatarValorAvulsa(valor)}</span>
               </div>
             ))}
           </div>
