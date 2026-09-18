@@ -51,6 +51,13 @@ export const CONSULTAS_AVULSAS: ConsultaAvulsaServico[] = [
     tipoApi: "estadual",
     precoCentavos: 698,
   },
+  {
+    id: "nacional",
+    nome: "Base Nacional",
+    grupo: "avancada",
+    tipoApi: "nacional",
+    precoCentavos: 740,
+  },
 ];
 
 export function getConsultaAvulsaPorId(id: string | null | undefined) {
