@@ -30,6 +30,13 @@ export const CONSULTAS_AVULSAS: ConsultaAvulsaServico[] = [
     tipoApi: "agregados-basica",
     precoCentavos: 120,
   },
+  {
+    id: "agregados-renavam",
+    nome: "Agregados Renavam",
+    grupo: "avancada",
+    tipoApi: "agregados-renavam",
+    precoCentavos: 420,
+  },
 ];
 
 export function getConsultaAvulsaPorId(id: string | null | undefined) {
