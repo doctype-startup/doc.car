@@ -2,6 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { CONSULTAS_AVULSAS } from "@/lib/consultas-avulsas";
+
+// Serviços "avançada" que ficam fora do combo automático de Consultar
+// placa (incluirNoCombo: false) aparecem aqui como link próprio.
+const AVANCADA_FORA_DO_COMBO = CONSULTAS_AVULSAS.filter(
+  (servico) => servico.grupo === "avancada" && servico.incluirNoCombo === false
+);
 
 export default function ConsultasAvulsasMenu() {
   const [aberto, setAberto] = useState(false);
@@ -50,6 +57,15 @@ export default function ConsultasAvulsasMenu() {
             <Link href="/dashboard" onClick={() => setAberto(false)}>
               Já incluída em Consultar placa
             </Link>
+            {AVANCADA_FORA_DO_COMBO.map((servico) => (
+              <Link
+                key={servico.id}
+                href={`/dashboard/consultas-avulsas/${servico.id}`}
+                onClick={() => setAberto(false)}
+              >
+                {servico.nome}
+              </Link>
+            ))}
           </div>
         </div>
       )}
