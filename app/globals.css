@@ -477,22 +477,27 @@ button.wide {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  min-width: 320px;
+  min-width: 420px;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 16px 40px rgba(6, 19, 63, 0.25);
-  padding: 16px;
+  padding: 18px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 20px;
   z-index: 40;
 }
 
 .consultas-avulsas-grupo {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
+}
+
+.consultas-avulsas-grupo + .consultas-avulsas-grupo {
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
 }
 
 .consultas-avulsas-titulo {
@@ -501,23 +506,57 @@ button.wide {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
+  margin-bottom: 6px;
 }
 
-.consultas-avulsas-grupo a {
+.consultas-avulsas-panel a.consultas-avulsas-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  margin: 0 -10px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);
   text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 
-.consultas-avulsas-grupo a:hover {
+.consultas-avulsas-panel a.consultas-avulsas-item:hover {
+  background: #f2f4fa;
   color: var(--brand);
+}
+
+.consultas-avulsas-item:hover .consultas-avulsas-preco {
+  background: var(--brand);
+  color: #fff;
+}
+
+.consultas-avulsas-preco {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand);
+  background: rgba(255, 106, 0, 0.1);
+  border-radius: 999px;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.consultas-avulsas-preco-variavel {
+  color: var(--muted);
+  background: #f2f4fa;
+  font-style: italic;
+  font-weight: 600;
 }
 
 .consultas-avulsas-vazio {
   font-size: 13px;
   color: var(--muted);
   font-style: italic;
+  padding: 8px 10px;
 }
 
 .topbar-right {
@@ -976,6 +1015,13 @@ button.wide {
     border: none;
     margin-top: 8px;
     padding: 12px 0 0;
+  }
+  .consultas-avulsas-grupo + .consultas-avulsas-grupo {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 8px;
   }
 }
 
