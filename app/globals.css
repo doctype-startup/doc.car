@@ -476,15 +476,14 @@ button.wide {
 .consultas-avulsas-panel {
   position: absolute;
   top: calc(100% + 6px);
-  left: 0;
-  min-width: 420px;
+  right: 0;
+  min-width: 300px;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: 0 16px 40px rgba(6, 19, 63, 0.25);
   padding: 18px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
   z-index: 40;
 }
@@ -493,11 +492,6 @@ button.wide {
   display: flex;
   flex-direction: column;
   gap: 2px;
-}
-
-.consultas-avulsas-grupo + .consultas-avulsas-grupo {
-  border-left: 1px solid var(--border);
-  padding-left: 20px;
 }
 
 .consultas-avulsas-titulo {
@@ -543,20 +537,6 @@ button.wide {
   border-radius: 999px;
   padding: 3px 9px;
   white-space: nowrap;
-}
-
-.consultas-avulsas-preco-variavel {
-  color: var(--muted);
-  background: #f2f4fa;
-  font-style: italic;
-  font-weight: 600;
-}
-
-.consultas-avulsas-vazio {
-  font-size: 13px;
-  color: var(--muted);
-  font-style: italic;
-  padding: 8px 10px;
 }
 
 .topbar-right {
@@ -1010,18 +990,10 @@ button.wide {
   .consultas-avulsas-panel {
     position: static;
     width: 100%;
-    grid-template-columns: 1fr;
     box-shadow: none;
     border: none;
     margin-top: 8px;
     padding: 12px 0 0;
-  }
-  .consultas-avulsas-grupo + .consultas-avulsas-grupo {
-    border-left: none;
-    padding-left: 0;
-    border-top: 1px solid var(--border);
-    padding-top: 12px;
-    margin-top: 8px;
   }
 }
 

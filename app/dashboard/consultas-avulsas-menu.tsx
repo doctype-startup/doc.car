@@ -3,8 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CONSULTAS_AVULSAS } from "@/lib/consultas-avulsas";
+import { PRECO_CRM_AVULSO_CENTAVOS } from "@/lib/plans";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Preço "a partir de" mostrado no menu pro combo completo — a página
+ * Consultar placa cobra cada serviço avançado individualmente (mais a
+ * cota/avulso da consulta avançada principal), não um valor fixo único;
+ * esse número é só a estimativa exibida aqui. */
+const PRECO_COMBO_EXIBICAO_CENTAVOS = 4760;
 
 // Todo serviço "avançada" ganha link próprio no menu — os que também
 // entram no combo automático de Consultar placa (incluirNoCombo !== false)
@@ -50,21 +57,17 @@ export default function ConsultasAvulsasMenu() {
       {aberto && (
         <div className="consultas-avulsas-panel" role="menu">
           <div className="consultas-avulsas-grupo">
-            <span className="consultas-avulsas-titulo">Consulta simples</span>
-            <span className="consultas-avulsas-vazio">Em breve</span>
-          </div>
-          <div className="consultas-avulsas-grupo">
             <span className="consultas-avulsas-titulo">Consulta avançada</span>
             <Link href="/dashboard" className="consultas-avulsas-item" onClick={() => setAberto(false)}>
               <span>Combo completo em Consultar placa</span>
-              <span className="consultas-avulsas-preco consultas-avulsas-preco-variavel">
-                vários preços
+              <span className="consultas-avulsas-preco">
+                {currency.format(PRECO_COMBO_EXIBICAO_CENTAVOS / 100)}
               </span>
             </Link>
             <Link href="/dashboard/crm" className="consultas-avulsas-item" onClick={() => setAberto(false)}>
               <span>Histórico de Proprietário</span>
-              <span className="consultas-avulsas-preco consultas-avulsas-preco-variavel">
-                cota do plano
+              <span className="consultas-avulsas-preco">
+                {currency.format(PRECO_CRM_AVULSO_CENTAVOS / 100)}
               </span>
             </Link>
             {SERVICOS_AVANCADA.map((servico) => (

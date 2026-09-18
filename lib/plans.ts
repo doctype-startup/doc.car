@@ -26,6 +26,13 @@ export const PRECO_AVULSO_SIMPLES_CENTAVOS = 620;
  * centavos. */
 export const PRECO_PROPRIETARIO_AVULSO_CENTAVOS = 3290;
 
+/** Preço do Histórico de Proprietário (app/dashboard/crm), cobrado avulso
+ * quando a cota de consulta avançada do plano (e os créditos) já
+ * acabaram no período — preço próprio, diferente do avulso da consulta
+ * avançada principal e do avulso do Plus "Dados do proprietário". Em
+ * centavos. */
+export const PRECO_CRM_AVULSO_CENTAVOS = 3190;
+
 export const PLANOS: Plano[] = [
   {
     id: "essencial",
