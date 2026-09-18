@@ -29,7 +29,7 @@ export default async function CrmPage() {
     <>
       <div className="app-header">
         <div>
-          <h1>CRM</h1>
+          <h1>Histórico de Proprietário</h1>
           <p>
             Dossiê completo do proprietário atual de um veículo (nome, CPF/CNPJ) por placa —
             uso profissional exclusivo, cada consulta é registrada e conta como consulta
