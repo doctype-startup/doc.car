@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-/** Grupos do menu — ainda sem serviços cadastrados, cada um vai ganhar seus
- * próprios itens (com API própria) conforme forem sendo implementados. */
-const GRUPOS = ["Consulta simples", "Consulta avançada"];
+import Link from "next/link";
 
 export default function ConsultasAvulsasMenu() {
   const [aberto, setAberto] = useState(false);
@@ -44,12 +41,16 @@ export default function ConsultasAvulsasMenu() {
 
       {aberto && (
         <div className="consultas-avulsas-panel" role="menu">
-          {GRUPOS.map((titulo) => (
-            <div key={titulo} className="consultas-avulsas-grupo">
-              <span className="consultas-avulsas-titulo">{titulo}</span>
-              <span className="consultas-avulsas-vazio">Em breve</span>
-            </div>
-          ))}
+          <div className="consultas-avulsas-grupo">
+            <span className="consultas-avulsas-titulo">Consulta simples</span>
+            <span className="consultas-avulsas-vazio">Em breve</span>
+          </div>
+          <div className="consultas-avulsas-grupo">
+            <span className="consultas-avulsas-titulo">Consulta avançada</span>
+            <Link href="/dashboard/consultas-avulsas/avancada" onClick={() => setAberto(false)}>
+              Consultar várias APIs
+            </Link>
+          </div>
         </div>
       )}
     </div>

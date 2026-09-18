@@ -365,13 +365,14 @@ function DashboardContent() {
       </div>
 
       <div className="info-banner">
-        Ficha do veículo e dados completos do proprietário (nome, CPF/CNPJ,
-        telefones, e-mails, endereços) vêm do provedor de dados real — só
-        aparece quando a consulta funciona. Débitos de IPVA/licenciamento e
-        FIPE ainda não têm fonte de dados disponível nessa consulta.
-        Renavam, chassi e dados do CRV, além de multas, roubo/furto e
-        Renajud, têm consulta avançada real, sob demanda — veja o botão no
-        card Identificação do documento abaixo (custo por consulta).
+        Ficha do veículo e o nome do proprietário vêm do provedor de dados
+        real — só aparece quando a consulta funciona. Débitos de
+        IPVA/licenciamento e FIPE ainda não têm fonte de dados disponível
+        nessa consulta. Renavam, chassi, dados do CRV, dossiê completo do
+        proprietário (CPF/CNPJ, telefones, e-mails, endereços), multas,
+        roubo/furto e Renajud têm consulta avançada real, sob demanda — veja
+        o botão no card Identificação do documento abaixo (custo por
+        consulta).
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -543,6 +544,12 @@ function DashboardContent() {
                   <span className="value">{veiculoReal.fipe.anoModelo}</span>
                 </div>
               )}
+              {veiculoReal.proprietarioNome && (
+                <div className="kv">
+                  <span className="label">Proprietário</span>
+                  <span className="value">{veiculoReal.proprietarioNome}</span>
+                </div>
+              )}
               <div className="kv">
                 <span className="label">CPF/CNPJ do cliente (informado por você)</span>
                 <input
@@ -557,7 +564,7 @@ function DashboardContent() {
             </div>
           </div>
 
-          {(veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
+          {avancada && (veiculoReal.proprietarioNome || veiculoReal.proprietarioDocumento) && (
             <div className="card">
               <h3>
                 Dados do proprietário <span className="badge ok">Dados reais</span>
