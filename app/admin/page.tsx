@@ -50,7 +50,7 @@ function ConcederCreditoForm({ userId }: { userId: string }) {
       action={concederCreditoManualAdmin.bind(null, userId)}
       style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
     >
-      <select name="tipo" defaultValue="simples" style={{ fontSize: 12 }}>
+      <select name="tipo" defaultValue="simples" className="admin-select" style={{ fontSize: 12 }}>
         <option value="simples">Consulta simples</option>
         <option value="avancada">Consulta avançada</option>
         <option value="avulsas">Saldo avulsas (R$)</option>
@@ -62,9 +62,10 @@ function ConcederCreditoForm({ userId }: { userId: string }) {
         min={0.01}
         step="any"
         required
+        className="admin-input"
         style={{ fontSize: 12, width: 70 }}
       />
-      <label style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+      <label className="admin-checkbox-label">
         <input type="checkbox" name="bonus" />
         Bônus
       </label>
@@ -342,12 +343,14 @@ export default async function AdminPage() {
               name="email"
               placeholder="email@exemplo.com"
               required
+              className="admin-input"
               style={{ fontSize: 13, flex: "1 1 220px" }}
             />
             <PasswordField
               name="senha"
               placeholder="Senha provisória (opcional)"
               minLength={6}
+              className="admin-input"
               style={{ fontSize: 13 }}
               wrapperStyle={{ flex: "1 1 180px" }}
             />
@@ -358,6 +361,7 @@ export default async function AdminPage() {
               min={1}
               defaultValue={7}
               required
+              className="admin-input"
               style={{ fontSize: 13, width: 90 }}
             />
             <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
@@ -462,17 +466,37 @@ export default async function AdminPage() {
                     </td>
                     <td>{plano ? `${uso}/${plano.cota}` : "—"}</td>
                     <td>
-                      <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 2 }}>
-                        <span>Simples: {quantidades.simples}</span>
-                        <span>Avançada: {quantidades.avancada}</span>
-                        <span>Avulsas: {quantidades.avulsas}</span>
+                      <div className="admin-stat-list">
+                        <div className="admin-stat-row">
+                          <span className="admin-stat-label">Simples:</span>
+                          <span className="admin-stat-value">{quantidades.simples}</span>
+                        </div>
+                        <div className="admin-stat-row">
+                          <span className="admin-stat-label">Avançada:</span>
+                          <span className="admin-stat-value">{quantidades.avancada}</span>
+                        </div>
+                        <div className="admin-stat-row">
+                          <span className="admin-stat-label">Avulsas:</span>
+                          <span className="admin-stat-value">{quantidades.avulsas}</span>
+                        </div>
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontSize: 12, display: "flex", flexDirection: "column", gap: 2 }}>
-                        <span>Simples: {saldos.simples} créditos</span>
-                        <span>Avançada: {saldos.avancada} créditos</span>
-                        <span>Avulsas: {currency.format(saldos.avulsasCentavos / 100)}</span>
+                      <div className="admin-stat-list">
+                        <div className="admin-stat-row">
+                          <span className="admin-stat-label">Simples:</span>
+                          <span className="admin-stat-value">{saldos.simples} créditos</span>
+                        </div>
+                        <div className="admin-stat-row">
+                          <span className="admin-stat-label">Avançada:</span>
+                          <span className="admin-stat-value">{saldos.avancada} créditos</span>
+                        </div>
+                        <div className="admin-stat-row">
+                          <span className="admin-stat-label">Avulsas:</span>
+                          <span className="admin-stat-value">
+                            {currency.format(saldos.avulsasCentavos / 100)}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td style={{ fontWeight: 600 }}>{currency.format(gastoTotal)}</td>
@@ -480,13 +504,13 @@ export default async function AdminPage() {
                       <span className={`badge ${online ? "ok" : "neutral"}`}>
                         {online ? "Online" : "Offline"}
                       </span>
-                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                      <div className="admin-acesso-ultimo">
                         {ultimoAcesso ? dataHora.format(ultimoAcesso) : "Nunca acessou"}
                       </div>
                     </td>
                     <td>
                       {temAcesso ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                        <div className="admin-actions">
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
                           <CopiarLinkButton email={despachante.email} />
                           <ConcederCreditoForm userId={despachante.id} />
@@ -505,15 +529,12 @@ export default async function AdminPage() {
                           </form>
                         </div>
                       ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                        <div className="admin-actions">
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
                           <CopiarLinkButton email={despachante.email} />
                           <ConcederCreditoForm userId={despachante.id} />
-                          <form
-                            action={concederAcessoManual.bind(null, despachante.id)}
-                            style={{ display: "flex", gap: 6, alignItems: "center" }}
-                          >
-                            <select name="plano" defaultValue={PLANOS[0].id} style={{ fontSize: 12 }}>
+                          <form action={concederAcessoManual.bind(null, despachante.id)}>
+                            <select name="plano" defaultValue={PLANOS[0].id} className="admin-select" style={{ fontSize: 12 }}>
                               {PLANOS.map((p) => (
                                 <option key={p.id} value={p.id}>
                                   {p.nome}
