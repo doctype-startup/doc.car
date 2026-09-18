@@ -116,6 +116,35 @@ export async function registrarRecarga(params: {
   }
 }
 
+/** Concede créditos de consulta simples direto pelo admin, sem cobrança —
+ * mesma validade de 6 meses das recargas compradas. `bonus` só marca a
+ * origem pra auditoria (relatórios, suporte), não muda o comportamento do
+ * crédito em si. */
+export async function concederCreditoManual(params: {
+  userId: string;
+  creditos: number;
+  bonus: boolean;
+}) {
+  const expiraEm = new Date();
+  expiraEm.setMonth(expiraEm.getMonth() + CREDITOS_VALIDADE_MESES);
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("recargas_simples").insert({
+    user_id: params.userId,
+    pacote_id: "manual",
+    creditos_totais: params.creditos,
+    creditos_restantes: params.creditos,
+    expira_em: expiraEm.toISOString(),
+    stripe_checkout_session_id: `manual:${crypto.randomUUID()}`,
+    bonus: params.bonus,
+  });
+
+  if (error) {
+    console.error(`[creditos] falha ao conceder crédito manual: ${error.message}`);
+    throw new Error("Não foi possível conceder o crédito.");
+  }
+}
+
 /** Zera o saldo de créditos do usuário — chamada quando a assinatura é
  * cancelada (créditos de recarga não sobrevivem ao cancelamento). */
 export async function expirarCreditosPorCancelamento(userId: string) {

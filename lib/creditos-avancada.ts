@@ -115,6 +115,33 @@ export async function registrarRecargaAvancada(params: {
   }
 }
 
+/** Mesmo que concederCreditoManual (lib/creditos.ts), pra consulta
+ * avançada. */
+export async function concederCreditoManualAvancada(params: {
+  userId: string;
+  creditos: number;
+  bonus: boolean;
+}) {
+  const expiraEm = new Date();
+  expiraEm.setMonth(expiraEm.getMonth() + CREDITOS_VALIDADE_MESES);
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("recargas_avancada").insert({
+    user_id: params.userId,
+    pacote_id: "manual",
+    creditos_totais: params.creditos,
+    creditos_restantes: params.creditos,
+    expira_em: expiraEm.toISOString(),
+    stripe_checkout_session_id: `manual:${crypto.randomUUID()}`,
+    bonus: params.bonus,
+  });
+
+  if (error) {
+    console.error(`[creditos-avancada] falha ao conceder crédito manual: ${error.message}`);
+    throw new Error("Não foi possível conceder o crédito.");
+  }
+}
+
 /** Zera o saldo de créditos do usuário — chamada quando a assinatura é
  * cancelada (créditos de recarga não sobrevivem ao cancelamento). */
 export async function expirarCreditosAvancadaPorCancelamento(userId: string) {

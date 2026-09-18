@@ -62,6 +62,7 @@ export async function creditarSaldoAvulsas(params: {
   userId: string;
   valorCentavos: number;
   checkoutSessionId: string;
+  bonus?: boolean;
 }) {
   const admin = createAdminClient();
 
@@ -69,6 +70,7 @@ export async function creditarSaldoAvulsas(params: {
     user_id: params.userId,
     valor_centavos: params.valorCentavos,
     stripe_checkout_session_id: params.checkoutSessionId,
+    bonus: params.bonus ?? false,
   });
 
   if (erroRecarga) {
@@ -86,4 +88,20 @@ export async function creditarSaldoAvulsas(params: {
   if (erroCredito) {
     console.error(`[saldo-avulsas] falha ao creditar saldo: ${erroCredito.message}`);
   }
+}
+
+/** Credita saldo direto pelo admin, sem cobrança — mesmo caminho de
+ * creditarSaldoAvulsas, só com uma sessão de checkout sintética (não veio
+ * do Stripe) e o preenchimento explícito de `bonus`. */
+export async function concederSaldoAvulsasManual(params: {
+  userId: string;
+  valorCentavos: number;
+  bonus: boolean;
+}) {
+  await creditarSaldoAvulsas({
+    userId: params.userId,
+    valorCentavos: params.valorCentavos,
+    checkoutSessionId: `manual:${crypto.randomUUID()}`,
+    bonus: params.bonus,
+  });
 }

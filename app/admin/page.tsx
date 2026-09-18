@@ -5,7 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getPlanoPorPriceId, PLANOS, PLANO_TESTE } from "@/lib/plans";
 import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { revogarAcesso, revogarEExcluirDados, concederAcessoManual, criarTeste } from "./actions";
+import {
+  revogarAcesso,
+  revogarEExcluirDados,
+  concederAcessoManual,
+  criarTeste,
+  concederCreditoManualAdmin,
+} from "./actions";
 import ConfirmSubmitButton from "./confirm-submit-button";
 import WhatsappAcessoButton from "./whatsapp-acesso-button";
 import CopiarLinkButton from "./copiar-link-button";
@@ -37,6 +43,37 @@ const FATURA_STATUS_LABEL: Record<string, { texto: string; badge: string }> = {
   void: { texto: "Anulada", badge: "neutral" },
   draft: { texto: "Rascunho", badge: "neutral" },
 };
+
+function ConcederCreditoForm({ userId }: { userId: string }) {
+  return (
+    <form
+      action={concederCreditoManualAdmin.bind(null, userId)}
+      style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
+    >
+      <select name="tipo" defaultValue="simples" style={{ fontSize: 12 }}>
+        <option value="simples">Consulta simples</option>
+        <option value="avancada">Consulta avançada</option>
+        <option value="avulsas">Saldo avulsas (R$)</option>
+      </select>
+      <input
+        type="number"
+        name="quantidade"
+        placeholder="Qtd."
+        min={0.01}
+        step="any"
+        required
+        style={{ fontSize: 12, width: 70 }}
+      />
+      <label style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>
+        <input type="checkbox" name="bonus" />
+        Bônus
+      </label>
+      <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
+        Conceder crédito
+      </button>
+    </form>
+  );
+}
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -329,6 +366,7 @@ export default async function AdminPage() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
                           <CopiarLinkButton email={despachante.email} />
+                          <ConcederCreditoForm userId={despachante.id} />
                           <form action={revogarAcesso.bind(null, despachante.id)}>
                             <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
                               Revogar acesso
@@ -347,6 +385,7 @@ export default async function AdminPage() {
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
                           <CopiarLinkButton email={despachante.email} />
+                          <ConcederCreditoForm userId={despachante.id} />
                           <form
                             action={concederAcessoManual.bind(null, despachante.id)}
                             style={{ display: "flex", gap: 6, alignItems: "center" }}
