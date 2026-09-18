@@ -97,10 +97,29 @@ export default async function AdminPage() {
 
   const admin = createAdminClient();
 
-  const { data: despachantes } = await admin
-    .from("profiles")
-    .select("id, name, email, created_at, last_seen_at")
-    .order("created_at", { ascending: false });
+  // last_seen_at é opcional (coluna nova, migration 0017) — se a migration
+  // ainda não rodou nesse ambiente, um select pedindo uma coluna
+  // inexistente falha por inteiro (despachantes viraria null e a tabela
+  // inteira sumiria, não só a coluna de acesso). Tenta com ela primeiro;
+  // se falhar, cai pra sem ela, pra nunca perder a lista de despachantes
+  // por causa de uma coluna nova que ainda não foi migrada.
+  let despachantes: { id: string; name: string; email: string; created_at: string; last_seen_at: string | null }[] | null = null;
+  {
+    const { data, error } = await admin
+      .from("profiles")
+      .select("id, name, email, created_at, last_seen_at")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(`[admin] falha ao buscar despachantes com last_seen_at: ${error.message}`);
+      const fallback = await admin
+        .from("profiles")
+        .select("id, name, email, created_at")
+        .order("created_at", { ascending: false });
+      despachantes = (fallback.data ?? []).map((d) => ({ ...d, last_seen_at: null }));
+    } else {
+      despachantes = data;
+    }
+  }
 
   const { data: subscriptions } = await admin
     .from("subscriptions")
