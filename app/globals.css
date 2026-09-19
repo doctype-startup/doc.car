@@ -944,6 +944,25 @@ button.wide {
   border-bottom: none;
 }
 
+/* Coluna "Ações" (formulário de crédito manual, revogar acesso etc.) fica
+ * fixa à direita — a tabela tem muitas colunas e rola horizontalmente, e sem
+ * isso a ação principal do admin ficava escondida fora da tela. */
+.admin-table th:last-child,
+.admin-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  box-shadow: -8px 0 8px -8px rgba(6, 19, 63, 0.12);
+}
+
+.admin-table td:last-child {
+  background: #fff;
+}
+
+.admin-table tbody tr:hover td:last-child {
+  background: #fafbfc;
+}
+
 /* ---------- Painel do admin ---------- */
 
 .admin-stat-list {
