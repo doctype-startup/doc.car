@@ -28,17 +28,20 @@ const MENSAGEM_SALDO_INSUFICIENTE_CRLV = `Saldo insuficiente para realizar a con
  * DOC.CAR no fornecedor que precisa de recarga. Quem chama já loga o JSON
  * bruto completo pro time interno diagnosticar; isso só filtra o texto
  * exibido na tela. */
+// Casa a palavra inteira ("saldo", "tarifa", "cobrado"/"cobrada",
+// "cobrança"/"cobranças") e não um pedaço dela — sem \b aqui, "tarifa"
+// também batia dentro de "tarifado" ("você não foi tarifado", o oposto de
+// um problema de saldo) e escondia erros de validação legítimos (ex: placa
+// em formato errado) atrás da mensagem genérica de saldo insuficiente.
+const PADRAO_REVELA_CONTA_INTERNA = /\b(saldos?|tarifas?|cobrad[oa]s?|cobranças?)\b/;
+
 export function mensagemSeguraApiBrasil(
   raw: string | undefined | null,
   fallback = "Não foi possível completar a consulta no momento. Tente novamente em instantes."
 ): string {
   if (!raw) return fallback;
   const normalizado = raw.toLowerCase();
-  const revelaContaInterna =
-    normalizado.includes("saldo") ||
-    normalizado.includes("tarifa") ||
-    normalizado.includes("cobrado") ||
-    normalizado.includes("cobrança");
+  const revelaContaInterna = PADRAO_REVELA_CONTA_INTERNA.test(normalizado);
   return revelaContaInterna ? fallback : raw;
 }
 
