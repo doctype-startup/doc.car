@@ -107,6 +107,7 @@ O app precisa de duas contas externas configuradas antes de funcionar de verdade
    - Débitos (IPVA, licenciamento) e FIPE **não têm fonte de dado real disponível** nesse provedor — a ficha mostra "Nada consta"/"Não disponível" nesses campos, sem simular valor nenhum.
    - Se o cliente informar o próprio CPF/CNPJ pessoalmente (ex: presente numa vistoria), há um campo manual de anotação na ficha (`cpfCnpjCliente` em `app/dashboard/page.tsx`) — não vem da API, não é persistido, existe só naquela consulta/impressão.
 4. `lib/infosimples.ts` fica sem uso por enquanto (endpoint de veículo não autorizado na conta atual) — mantido só caso a consulta de multas ANTT/SIFAMA seja retomada.
+5. **Fallback opcional**: quando a API Brasil falha de verdade (fora do ar, sem saldo — motivo `"http"`, nunca no simples "essa placa não existe"), `lib/dados-veiculo.ts` tenta automaticamente um segundo fornecedor (`wdapi2.com.br`, revendido também como placas.com.br/apiplacas.com.br) → `WDAPI2_TOKEN`. Esse provedor só devolve dado do veículo (placa, chassi mascarado, marca/modelo, ano, cor, FIPE) — sem dossiê do proprietário. Sem o token configurado, o fallback é simplesmente pulado.
 
 ### 4. Consulta avançada (multas, roubo/furto, Renajud)
 
