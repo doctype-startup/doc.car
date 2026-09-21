@@ -5,6 +5,15 @@ export const isPlacaApiConfigured = isApiBrasilConfigured;
 
 const token = process.env.APIBRASIL_TOKEN || "";
 
+/** Fornecedor alternativo (wdapi2.com.br, revendido também como
+ * placas.com.br/apiplacas.com.br) — só entra em ação quando a API Brasil
+ * falha de verdade (motivo "http": fora do ar, sem saldo etc), nunca
+ * quando ela só responde "essa placa não existe" (motivo "nao_encontrado",
+ * que já é uma resposta válida). Token opcional: sem ele, o fallback é
+ * simplesmente pulado e o comportamento fica igual ao de antes. */
+const wdapi2Token = process.env.WDAPI2_TOKEN || "";
+const URL_WDAPI2 = "https://wdapi2.com.br/consulta";
+
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 /** Mensagem de saldo insuficiente mostrada ao cliente quando a API Brasil
@@ -215,6 +224,101 @@ function sanitizeVeiculo(raw: any, placaConsultada: string): VeiculoReal {
   };
 }
 
+/** "R$ 28.799,00" → 28799 — a WDAPI2 só manda o valor FIPE como texto
+ * formatado (o "id_valor" numérico ao lado é um código interno da tabela,
+ * não o preço em reais). */
+function parseValorFipe(texto: unknown): number {
+  if (typeof texto !== "string") return 0;
+  const numero = Number(texto.replace(/[^\d,]/g, "").replace(",", "."));
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sanitizeVeiculoWdapi2(raw: any, placaConsultada: string): VeiculoReal {
+  const extra = raw?.extra || {};
+  const fipeDados = raw?.fipe?.dados?.[0];
+
+  return {
+    placa: raw?.placa || placaConsultada,
+    // Vem parcialmente mascarado ("*****10137") direto do fornecedor —
+    // exibido como o provedor manda, sem tentar completar os dígitos.
+    chassi: raw?.chassi || undefined,
+    marca: raw?.marca || raw?.MARCA || undefined,
+    modelo: raw?.modelo || raw?.MODELO || undefined,
+    anoFabricacao: extra.ano_fabricacao ? Number(extra.ano_fabricacao) : undefined,
+    anoModelo: raw?.anoModelo ? Number(raw.anoModelo) : undefined,
+    cor: raw?.cor || undefined,
+    combustivel: extra.combustivel || undefined,
+    municipio: raw?.municipio || undefined,
+    uf: raw?.uf || undefined,
+    situacaoVeiculo: raw?.situacao || undefined,
+    tipoVeiculo: extra.tipo_veiculo || undefined,
+    especie: extra.especie || undefined,
+    carroceria: extra.carroceria || undefined,
+    nacionalidade: extra.nacionalidade || undefined,
+    tipoMontagem: extra.tipo_montagem || undefined,
+    cilindradas: extra.cilindradas || undefined,
+    eixos: extra.eixos || undefined,
+    lotacao: extra.quantidade_passageiro || undefined,
+    pesoBrutoTotal: extra.peso_bruto_total || undefined,
+    capMaximaTracao: extra.cap_maxima_tracao || undefined,
+    dataUltimaAtualizacao: raw?.data || undefined,
+    quilometragem: [],
+    restricoes: [],
+    indicadores: { rouboFurto: false, restricaoJudicial: false, multa: false },
+    fipe: fipeDados
+      ? {
+          codigo: fipeDados.codigo_fipe || undefined,
+          descricao: fipeDados.texto_modelo || undefined,
+          anoModelo: fipeDados.ano_modelo ? Number(fipeDados.ano_modelo) : undefined,
+          valor: parseValorFipe(fipeDados.texto_valor),
+        }
+      : null,
+    // Esse fornecedor não devolve dado do proprietário (nome, documento,
+    // contatos) — só dados do veículo. Os campos proprietario* ficam
+    // undefined, igual a uma consulta da API Brasil que não os retornasse.
+  };
+}
+
+async function buscarWdapi2(placa: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  try {
+    return await fetch(`${URL_WDAPI2}/${encodeURIComponent(placa)}/${wdapi2Token}`, {
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Só chamado quando a API Brasil falhou de verdade (motivo "http") — ver
+ * consultarVeiculoPorPlaca. Não expõe o motivo da falha da WDAPI2 pro
+ * cliente (poderia vazar token/saldo, igual ao que mensagemSeguraApiBrasil
+ * já filtra da API Brasil); se também falhar, quem chama mantém o erro
+ * original da API Brasil, que já é seguro. */
+async function tentarFallbackWdapi2(placa: string): Promise<VeiculoReal | null> {
+  if (!wdapi2Token) return null;
+
+  try {
+    const response = await buscarWdapi2(placa);
+    const json = await response.json().catch(() => null);
+
+    if (!response.ok || !json || (!json.marca && !json.MARCA)) {
+      console.error(
+        `[dados-veiculo] fallback wdapi2 falhou (placa=${placa}, http=${response.status}): ${JSON.stringify(json)}`
+      );
+      return null;
+    }
+
+    return sanitizeVeiculoWdapi2(json, placa);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    console.error(`[dados-veiculo] fallback wdapi2 indisponível (placa=${placa}): ${message}`);
+    return null;
+  }
+}
+
 export async function consultarVeiculoPorPlaca(
   placa: string
 ): Promise<ConsultaVeiculoResult> {
@@ -237,7 +341,7 @@ export async function consultarVeiculoPorPlaca(
     console.error(
       `[dados-veiculo] falha ao consultar (placa=${placa}, http=${response.status}): ${JSON.stringify(json)}`
     );
-    return {
+    const resultadoApiBrasil: ConsultaVeiculoResult = {
       ok: false,
       motivo: "http",
       errorMessage: mensagemSeguraApiBrasil(
@@ -245,6 +349,14 @@ export async function consultarVeiculoPorPlaca(
         MENSAGEM_SALDO_INSUFICIENTE_SIMPLES
       ),
     };
+
+    const fallback = await tentarFallbackWdapi2(placa);
+    if (fallback) {
+      console.log(`[dados-veiculo] placa=${placa} atendida pelo fallback wdapi2`);
+      return { ok: true, data: fallback };
+    }
+
+    return resultadoApiBrasil;
   }
 
   const veiculo = json?.data?.veicular?.proprietario_atual_veiculo;
