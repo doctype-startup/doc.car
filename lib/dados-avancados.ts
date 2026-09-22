@@ -229,11 +229,18 @@ export async function consultarAvancadaPorPlaca(
   let response: Response;
   try {
     response = await buscarAvancada(url.toString());
-    if (!response.ok) response = await buscarAvancada(url.toString());
-  } catch {
+    if (!response.ok) {
+      console.error(`[dados-avancados] 1ª tentativa falhou (placa=${placa}, http=${response.status}) — tentando de novo`);
+      response = await buscarAvancada(url.toString());
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    console.error(`[dados-avancados] 1ª tentativa deu exceção (placa=${placa}): ${message} — tentando de novo`);
     try {
       response = await buscarAvancada(url.toString());
-    } catch {
+    } catch (err2) {
+      const message2 = err2 instanceof Error ? err2.message : "erro desconhecido";
+      console.error(`[dados-avancados] 2ª tentativa também deu exceção (placa=${placa}): ${message2} — desistindo`);
       return {
         ok: false,
         errorMessage: "O provedor de consulta avançada está indisponível no momento. Tente novamente em instantes.",
@@ -244,9 +251,17 @@ export async function consultarAvancadaPorPlaca(
   const json = await response.json().catch(() => null);
 
   if (!response.ok) {
+    // Só os metadados do erro (status/mensagem), nunca o corpo bruto —
+    // igual à resposta de sucesso, pode trazer dado do proprietário.
+    console.error(
+      `[dados-avancados] resposta não-ok (placa=${placa}, http=${response.status}): status=${json?.status} mensagem=${json?.message || json?.mensagem}`
+    );
     return { ok: false, errorMessage: `Consulta avançada falhou (HTTP ${response.status}).` };
   }
   if (json?.status !== "sucesso") {
+    console.error(
+      `[dados-avancados] resposta ok porém sem sucesso (placa=${placa}): status=${json?.status} mensagem=${json?.message || json?.mensagem}`
+    );
     return { ok: false, errorMessage: "Não foi possível consultar débitos/multas para essa placa." };
   }
 
