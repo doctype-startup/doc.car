@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, FormEvent, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
   isValidPlaca,
   lookupVehicle,
@@ -11,11 +10,7 @@ import {
 } from "@/lib/vehicle";
 import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj, formatCpf } from "@/lib/dados-veiculo";
-import { ConsultaAvancada } from "@/lib/dados-avancados";
-import { formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
-import { extrairCamposAvulsa } from "@/lib/consultas-avulsas-extratores";
-import type { ResultadoServicoAvancada } from "@/app/api/consultas-avulsas/avancada/route";
-import { PRECO_AVULSO_CENTAVOS, PRECO_PROPRIETARIO_AVULSO_CENTAVOS } from "@/lib/plans";
+import { PRECO_PROPRIETARIO_AVULSO_CENTAVOS } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
 import { useGuardiaoResumo } from "@/components/guardiao-context";
 
@@ -37,11 +32,11 @@ function gerarChamadoId() {
 
 /** Monta o resumo inteligente que o Guardião mostra no widget flutuante:
  * só o que realmente importa da ficha consultada, sem precisar abrir cada
- * card. Prioriza os dados da consulta avançada (mais completos) quando
- * disponíveis; senão usa os indicadores já vindos da consulta básica. */
+ * card. Usa os indicadores (sinais, não detalhe) já vindos da consulta
+ * básica — o detalhe completo (multas, roubo/furto, Renajud) agora mora
+ * na aba "Consulta Avançada", separada desta tela. */
 function buildResumoGuardiao(
-  veiculo: VeiculoReal | null,
-  avancada: ConsultaAvancada | null
+  veiculo: VeiculoReal | null
 ): { texto: string; alerta: boolean } | null {
   if (!veiculo) return null;
 
@@ -53,27 +48,14 @@ function buildResumoGuardiao(
     );
   }
 
-  if (avancada) {
-    if (avancada.totalMultas > 0) {
-      alertas.push(
-        `${avancada.totalMultas} multa${avancada.totalMultas > 1 ? "s" : ""} (${currency.format(avancada.valorTotalMultas)})`
-      );
-    }
-    if (avancada.rouboFurto) alertas.push("ocorrência de roubo/furto");
-    if (avancada.possuiRestricaoJudicial) alertas.push("restrição judicial (Renajud)");
-    if (avancada.possuiRestricaoExtrajudicial) alertas.push("restrição extrajudicial (ex: alienação fiduciária)");
-  } else {
-    if (veiculo.indicadores.rouboFurto) alertas.push("indício de roubo/furto");
-    if (veiculo.indicadores.restricaoJudicial) alertas.push("indício de restrição judicial");
-    if (veiculo.indicadores.multa) alertas.push("indício de multa");
-  }
+  if (veiculo.indicadores.rouboFurto) alertas.push("indício de roubo/furto");
+  if (veiculo.indicadores.restricaoJudicial) alertas.push("indício de restrição judicial");
+  if (veiculo.indicadores.multa) alertas.push("indício de multa");
 
   if (alertas.length === 0) {
     return {
       alerta: false,
-      texto: avancada
-        ? `Placa ${veiculo.placa}: nada consta de relevante — documento limpo nos dados reais consultados.`
-        : `Placa ${veiculo.placa}: sem restrições no documento. Consulte multas/roubo-furto abaixo pra um resumo completo.`,
+      texto: `Placa ${veiculo.placa}: sem restrições no documento. Consulte multas/roubo-furto na aba Consulta Avançada pra um resumo completo.`,
     };
   }
 
@@ -98,14 +80,6 @@ function DashboardContent() {
   const [realError, setRealError] = useState("");
   const [cpfCnpjCliente, setCpfCnpjCliente] = useState("");
   const [chamadoId, setChamadoId] = useState("");
-  const [avancada, setAvancada] = useState<ConsultaAvancada | null>(null);
-  const [avancadaError, setAvancadaError] = useState("");
-  const [avancadaLoading, setAvancadaLoading] = useState(false);
-  /** Resultado dos serviços do menu "Consultas Avulsas" marcados como
-   * "avançada" (lib/consultas-avulsas.ts) — disparados junto com a
-   * consulta avançada principal, complementando a ficha. Vazio enquanto
-   * nenhum serviço desse grupo for cadastrado. */
-  const [avulsasAvancada, setAvulsasAvancada] = useState<ResultadoServicoAvancada[]>([]);
   /** Dossiê completo do proprietário (CPF/CNPJ, nome da mãe, telefones,
    * endereços) — plus separado da consulta avançada principal, com botão
    * próprio: desconta da mesma cota mensal quando disponível, senão cobra
@@ -159,10 +133,7 @@ function DashboardContent() {
     };
   }, []);
 
-  const resumoGuardiao = useMemo(
-    () => buildResumoGuardiao(veiculoReal, avancada),
-    [veiculoReal, avancada]
-  );
+  const resumoGuardiao = useMemo(() => buildResumoGuardiao(veiculoReal), [veiculoReal]);
   useGuardiaoResumo(resumoGuardiao);
 
   async function runSearch(value: string) {
@@ -172,9 +143,6 @@ function DashboardContent() {
     setVeiculoReal(null);
     setRealError("");
     setCpfCnpjCliente("");
-    setAvancada(null);
-    setAvancadaError("");
-    setAvulsasAvancada([]);
     setProprietarioLiberado(false);
     setProprietarioError("");
     setProprietarioSaldo(null);
@@ -217,44 +185,6 @@ function DashboardContent() {
 
     if (requestIdRef.current !== requestId) return;
     setLoading(false);
-  }
-
-  async function runAvancada() {
-    const placaAlvo = veiculoReal?.placa || result?.placa;
-    if (!placaAlvo) return;
-
-    setAvancadaLoading(true);
-    setAvancadaError("");
-
-    // Dispara a consulta avançada principal (multas/roubo-furto/Renajud) e
-    // todos os serviços do menu "Consultas Avulsas" marcados como
-    // "avançada" (lib/consultas-avulsas.ts) ao mesmo tempo, pra uma única
-    // placa — a segunda complementa a mesma ficha, sem bloquear nem ser
-    // bloqueada pela primeira; fica vazia (sem erro pra exibir) enquanto
-    // nenhum serviço desse grupo estiver cadastrado.
-    const [principal, avulsas] = await Promise.allSettled([
-      fetch(`/api/consulta-avancada?placa=${encodeURIComponent(placaAlvo)}`).then((r) =>
-        r.json().then((payload) => ({ ok: r.ok, payload }))
-      ),
-      fetch(`/api/consultas-avulsas/avancada?placa=${encodeURIComponent(placaAlvo)}`).then((r) =>
-        r.json().then((payload) => ({ ok: r.ok, payload }))
-      ),
-    ]);
-
-    if (principal.status === "fulfilled" && principal.value.ok) {
-      setAvancada(principal.value.payload.data);
-    } else {
-      setAvancadaError(
-        (principal.status === "fulfilled" && principal.value.payload.error) ||
-          "Não foi possível contatar o provedor de dados avançados."
-      );
-    }
-
-    setAvulsasAvancada(
-      avulsas.status === "fulfilled" && avulsas.value.ok ? avulsas.value.payload.resultados ?? [] : []
-    );
-
-    setAvancadaLoading(false);
   }
 
   /** Libera o card "Dados do proprietário" — o dado em si já está em
@@ -310,8 +240,6 @@ function DashboardContent() {
 
       setError("");
       setRealError("");
-      setAvancadaError("");
-      setAvulsasAvancada([]);
       setProprietarioLiberado(false);
       setProprietarioError("");
       setProprietarioSaldo(null);
@@ -324,7 +252,6 @@ function DashboardContent() {
       setResult(data);
       setChamadoId(gerarChamadoId());
       setVeiculoReal(payload.data);
-      setAvancada(payload.avancada ?? null);
       setFromCache(true);
 
       void addHistory(data.placa);
@@ -899,378 +826,12 @@ function DashboardContent() {
           )}
 
           <div className="card">
-            <h3>
-              Identificação do documento{" "}
-              {avancada && <span className="badge ok">Dados reais</span>}
-            </h3>
-
-            {!avancada && (
-              <button
-                type="button"
-                className="secondary-button destaque no-print"
-                onClick={runAvancada}
-                disabled={avancadaLoading}
-                style={{ marginBottom: 12 }}
-              >
-                {avancadaLoading
-                  ? "Consultando..."
-                  : `Consultar Renavam, chassi, proprietário, multas, roubo/furto e Renajud reais (${currency.format(PRECO_AVULSO_CENTAVOS / 100)})`}
-              </button>
-            )}
-            {avancadaError && (
-              <p className="form-error" style={{ marginBottom: 12 }}>
-                {avancadaError}
-              </p>
-            )}
-
-            {avancada ? (
-              <div className="grid-3">
-                <div className="kv">
-                  <span className="label">Renavam</span>
-                  <span className="value">{veiculoReal.renavam || "—"}</span>
-                </div>
-                <div className="kv">
-                  <span className="label">Chassi</span>
-                  <span className="value">{veiculoReal.chassi || "—"}</span>
-                </div>
-                <div className="kv">
-                  <span className="label">Proprietário</span>
-                  <span className="value">
-                    {veiculoReal.proprietarioNome || avancada.proprietarioNome || "—"}
-                  </span>
-                </div>
-                {(veiculoReal.proprietarioCnpj || avancada.proprietarioCnpj) && (
-                  <div className="kv">
-                    <span className="label">CNPJ do proprietário</span>
-                    <span className="value">
-                      {formatCnpj(veiculoReal.proprietarioCnpj || avancada.proprietarioCnpj || "")}
-                    </span>
-                  </div>
-                )}
-                {veiculoReal.cnpjFaturado && (
-                  <div className="kv">
-                    <span className="label">CNPJ da fatura original</span>
-                    <span className="value">{formatCnpj(veiculoReal.cnpjFaturado)}</span>
-                  </div>
-                )}
-                {(veiculoReal.numeroSequencialDocumento || avancada.numeroSequencialDocumento) && (
-                  <div className="kv">
-                    <span className="label">Número sequencial do documento</span>
-                    <span className="value">
-                      {veiculoReal.numeroSequencialDocumento || avancada.numeroSequencialDocumento}
-                    </span>
-                  </div>
-                )}
-                {(veiculoReal.codigoSegurancaCrv || avancada.codigoSegurancaCrv) && (
-                  <div className="kv">
-                    <span className="label">Código de segurança do CRV</span>
-                    <span className="value">
-                      {veiculoReal.codigoSegurancaCrv || avancada.codigoSegurancaCrv}
-                    </span>
-                  </div>
-                )}
-                {(veiculoReal.situacaoChassi || avancada.situacaoChassi) && (
-                  <div className="kv">
-                    <span className="label">Situação do chassi</span>
-                    <span className="value">{veiculoReal.situacaoChassi || avancada.situacaoChassi}</span>
-                  </div>
-                )}
-                {avancada.numeroCrv && (
-                  <div className="kv">
-                    <span className="label">Número do CRV (impresso no documento)</span>
-                    <span className="value">{avancada.numeroCrv}</span>
-                  </div>
-                )}
-                {avancada.identificacaoUnica && (
-                  <div className="kv">
-                    <span className="label">Identificação única</span>
-                    <span className="value">{avancada.identificacaoUnica}</span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              !avancadaError && (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nada consta. Clique no botão acima pra consultar dados reais.
-                </p>
-              )
-            )}
-          </div>
-
-          <div className="card">
             <h3>Débitos</h3>
             <p style={{ fontSize: 13, color: "var(--muted)" }}>
               Nada consta. Consulta de débitos de IPVA e licenciamento ainda não disponível
               nesta versão.
             </p>
           </div>
-
-          <div className="card">
-            <h3>
-              Multas{" "}
-              {avancada && <span className="badge ok">Dados reais</span>}
-            </h3>
-
-            {avancadaError && (
-              <p className="form-error" style={{ marginBottom: 12 }}>
-                {avancadaError}
-              </p>
-            )}
-
-            {avancada?.anoUltimoLicenciamento && (
-              <div className="grid-2" style={{ marginBottom: 12 }}>
-                <div className="kv">
-                  <span className="label">Ano do último licenciamento</span>
-                  <span className="value">{avancada.anoUltimoLicenciamento}</span>
-                </div>
-              </div>
-            )}
-
-            {avancada &&
-              (avancada.foiEmplacado !== undefined ||
-                avancada.ostentaPiv !== undefined ||
-                avancada.placaFormatoAntigo !== undefined ||
-                avancada.placaInutilizada !== undefined) && (
-                <div style={{ marginBottom: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {avancada.foiEmplacado !== undefined && (
-                    <span className={`badge ${avancada.foiEmplacado ? "ok" : "neutral"}`}>
-                      {avancada.foiEmplacado ? "Emplacado" : "Não emplacado"}
-                    </span>
-                  )}
-                  {avancada.ostentaPiv !== undefined && (
-                    <span className={`badge ${avancada.ostentaPiv ? "ok" : "neutral"}`}>
-                      {avancada.ostentaPiv ? "Ostenta PIV" : "Sem PIV"}
-                    </span>
-                  )}
-                  {avancada.placaFormatoAntigo && (
-                    <span className="badge neutral">Placa formato pré-Mercosul</span>
-                  )}
-                  {avancada.placaInutilizada && (
-                    <span className="badge warn">Placa inutilizada</span>
-                  )}
-                </div>
-              )}
-
-            {avancada && avancada.observacoes.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                <span className="label">Observações do documento</span>
-                {avancada.observacoes.map((obs, idx) => (
-                  <p key={idx} style={{ fontSize: 13, marginTop: 4 }}>
-                    {obs}
-                  </p>
-                ))}
-              </div>
-            )}
-
-            {avancada ? (
-              avancada.totalMultas === 0 ? (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
-              ) : (
-                <>
-                  {avancada.multas.map((multa, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        borderTop: idx === 0 ? "none" : "1px solid var(--border)",
-                        padding: "10px 0",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>
-                          {multa.descricao || "Infração"}
-                        </span>
-                        <span className="value" style={{ whiteSpace: "nowrap" }}>
-                          {currency.format(multa.valorTotal)}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-                        {[
-                          multa.codigo && `Código ${multa.codigo}`,
-                          multa.tipoMulta,
-                          multa.gravidade && `Gravidade: ${multa.gravidade}`,
-                          multa.infrator && `Responsável: ${multa.infrator}`,
-                          multa.orgaoCompetente && `Órgão: ${multa.orgaoCompetente}`,
-                          multa.amparoLegal && `Art. ${multa.amparoLegal}`,
-                          multa.quantidade > 1 && `${multa.quantidade}x`,
-                          `${currency.format(multa.valorUnitario)} unit.`,
-                          multa.multiplicador !== 1 && `Multiplicador ${multa.multiplicador}x`,
-                          `${multa.pontosUnitario} pts unit.`,
-                          `${multa.pontosTotal} pontos`,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    </div>
-                  ))}
-                  <div className="grid-2" style={{ marginTop: 12 }}>
-                    <div className="kv">
-                      <span className="label">Total de multas</span>
-                      <span className="value">{avancada.totalMultas}</span>
-                    </div>
-                    <div className="kv">
-                      <span className="label">Valor total</span>
-                      <span className="value">{currency.format(avancada.valorTotalMultas)}</span>
-                    </div>
-                    <div className="kv">
-                      <span className="label">Pontos na CNH</span>
-                      <span className="value">{avancada.pontosTotal}</span>
-                    </div>
-                  </div>
-                </>
-              )
-            ) : (
-              !avancadaError && (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nada consta. Consulte no card Identificação do documento acima pra
-                  liberar dados reais.
-                </p>
-              )
-            )}
-          </div>
-
-          {avancada && (
-            <div className="card">
-              <h3>
-                Roubo/furto <span className="badge ok">Dados reais</span>
-              </h3>
-              {avancada.rouboFurto ? (
-                <div className="grid-2">
-                  <div className="kv">
-                    <span className="label">Tipo</span>
-                    <span className="value">{avancada.rouboFurto.tipo || "—"}</span>
-                  </div>
-                  <div className="kv">
-                    <span className="label">Data</span>
-                    <span className="value">{avancada.rouboFurto.data || "—"}</span>
-                  </div>
-                  <div className="kv">
-                    <span className="label">Município</span>
-                    <span className="value">{avancada.rouboFurto.municipio || "—"}</span>
-                  </div>
-                  <div className="kv">
-                    <span className="label">Observação</span>
-                    <span className="value">{avancada.rouboFurto.descricao || "—"}</span>
-                  </div>
-                  {avancada.rouboFurto.numeroBoletim && (
-                    <div className="kv">
-                      <span className="label">Boletim</span>
-                      <span className="value">{avancada.rouboFurto.numeroBoletim}</span>
-                    </div>
-                  )}
-                  {avancada.rouboFurto.orgaoSeguranca && (
-                    <div className="kv">
-                      <span className="label">Órgão de segurança</span>
-                      <span className="value">{avancada.rouboFurto.orgaoSeguranca}</span>
-                    </div>
-                  )}
-                  {avancada.rouboFurto.quantidade !== undefined && (
-                    <div className="kv">
-                      <span className="label">Ocorrências</span>
-                      <span className="value">{avancada.rouboFurto.quantidade}</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
-              )}
-            </div>
-          )}
-
-          {avancada && (
-            <div className="card">
-              <h3>
-                Restrições judiciais (Renajud) <span className="badge ok">Dados reais</span>
-              </h3>
-              {avancada.possuiRestricaoExtrajudicial && (
-                <span className="badge warn" style={{ marginBottom: 12 }}>
-                  Restrição extrajudicial (ex: alienação fiduciária)
-                </span>
-              )}
-              {avancada.possuiRestricaoJudicial ? (
-                avancada.restricoesJudiciais.map((restricao, idx) => (
-                  <div key={idx} style={{ marginBottom: 10 }}>
-                    {restricao.restricoes.length > 0 ? (
-                      restricao.restricoes.map((desc) => (
-                        <span
-                          key={desc}
-                          className="badge warn"
-                          style={{ marginRight: 8, marginBottom: 8 }}
-                        >
-                          {desc}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="badge warn">Restrição judicial</span>
-                    )}
-                    <p style={{ fontSize: 13, marginTop: 6, color: "var(--muted)" }}>
-                      {[
-                        restricao.tribunal,
-                        restricao.orgaoJudiciario,
-                        restricao.ramo && `Ramo: ${restricao.ramo}`,
-                        restricao.processo && `Processo ${restricao.processo}`,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>Nada consta.</p>
-              )}
-              {(avancada.proprietarioNome || avancada.proprietarioCnpj) && (
-                <div className="grid-2" style={{ marginTop: 12 }}>
-                  {avancada.proprietarioNome && (
-                    <div className="kv">
-                      <span className="label">Proprietário</span>
-                      <span className="value">{avancada.proprietarioNome}</span>
-                    </div>
-                  )}
-                  {avancada.proprietarioCnpj && (
-                    <div className="kv">
-                      <span className="label">CNPJ do proprietário</span>
-                      <span className="value">{formatCnpj(avancada.proprietarioCnpj)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {avulsasAvancada.map((resultado) => (
-            <div key={resultado.servicoId} className="card">
-              <h3>
-                {resultado.nome}{" "}
-                <span className={`badge ${resultado.ok ? "ok" : "warn"}`}>
-                  {resultado.ok ? "Dados reais" : "Não disponível"}
-                </span>
-              </h3>
-              {resultado.ok ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {(extrairCamposAvulsa(resultado.servicoId, resultado.data) ??
-                    Object.entries(resultado.data).map(([chave, valor]) => ({
-                      label: formatarLabelAvulsa(chave),
-                      valor: formatarValorAvulsa(valor),
-                    }))
-                  ).map((campo) => (
-                    <div key={campo.label} className="kv">
-                      <span className="label">{campo.label}</span>
-                      <span className="value">{campo.valor}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  {resultado.errorMessage}
-                  {resultado.errorMessage === "Saldo insuficiente." && (
-                    <>
-                      {" "}
-                      <Link href="/dashboard/consultas-avulsas/recarga">Recarregar saldo</Link>
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
-          ))}
 
           <div className="card">
             <h3>

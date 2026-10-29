@@ -11,7 +11,7 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
  * Consultar placa cobra cada serviço avançado individualmente (mais a
  * cota/avulso da consulta avançada principal), não um valor fixo único;
  * esse número é só a estimativa exibida aqui. */
-const PRECO_COMBO_EXIBICAO_CENTAVOS = 4760;
+const PRECO_COMBO_EXIBICAO_CENTAVOS = 5128;
 
 // Todo serviço "avançada" ganha link próprio no menu — os que também
 // entram no combo automático de Consultar placa (incluirNoCombo !== false)
@@ -58,8 +58,12 @@ export default function ConsultasAvulsasMenu() {
         <div className="consultas-avulsas-panel" role="menu">
           <div className="consultas-avulsas-grupo">
             <span className="consultas-avulsas-titulo">Consulta avançada</span>
-            <Link href="/dashboard" className="consultas-avulsas-item" onClick={() => setAberto(false)}>
-              <span>Combo completo em Consultar placa</span>
+            <Link
+              href="/dashboard/avancada"
+              className="consultas-avulsas-item"
+              onClick={() => setAberto(false)}
+            >
+              <span>Combo completo em Consulta Avançada</span>
               <span className="consultas-avulsas-preco">
                 {currency.format(PRECO_COMBO_EXIBICAO_CENTAVOS / 100)}
               </span>

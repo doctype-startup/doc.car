@@ -349,6 +349,44 @@ function extrairRenainf(data: Obj): CampoAvulsa[] {
   return campos(campo("Placa", data.placa), campo("Ocorrências", data.quantidade_ocorrencias), ...camposRegistros);
 }
 
+function extrairRenajud(data: Obj): CampoAvulsa[] {
+  const registros: Obj[] = Array.isArray(data.renajud) ? data.renajud : [];
+
+  const camposRegistros = registros.flatMap((r, idx) => {
+    const sufixo = registros.length > 1 ? ` ${idx + 1}` : "";
+    return campos(
+      campo(`Tribunal${sufixo}`, r.nometribunal || r.codigotribunal),
+      campo(`Nº do processo${sufixo}`, r.numerodoprocesso),
+      campo(`Órgão judicial${sufixo}`, r.nomeorgaojudicial || r.codigoorgaojudicial),
+      campo(
+        `Consta restrição${sufixo}`,
+        r.constarestricaorenajud === "S" ? "Sim" : r.constarestricaorenajud === "N" ? "Não" : undefined
+      ),
+      campo(`Tipo de restrição${sufixo}`, r.tiporestricjudicial),
+      campo(`Data de inclusão${sufixo}`, r.datadainclusao)
+    );
+  });
+
+  return campos(
+    campo("Placa", data.placa),
+    campo("Marca/Modelo", data.marcamodelo),
+    campo("Ano de fabricação", data.anofabricacao),
+    campo("Cor", data.cor),
+    campo("Combustível", data.combustivel),
+    campo("Chassi", data.chassi),
+    campo("Renavam", data.renavam),
+    campo("Município", data.municipio),
+    campo("Procedência", data.procedencia),
+    campo("Situação Renajud", data.msg),
+    campo("Bloqueios ativos localizados", data.quantidade_de_bloqueio_ativo_localizado),
+    campo(
+      "Ocorrências no Detran",
+      data.quantidade_de_ocorrencias_exibidas_e_disponivel_pelo_detran
+    ),
+    ...camposRegistros
+  );
+}
+
 const EXTRATORES: Record<string, (data: Obj) => CampoAvulsa[]> = {
   "agregados-simples": extrairAgregadosSimples,
   "agregados-renavam": extrairAgregadosRenavam,
@@ -358,6 +396,7 @@ const EXTRATORES: Record<string, (data: Obj) => CampoAvulsa[]> = {
   "ficha-tecnica": extrairFichaTecnica,
   "agregados-v2": extrairAgregadosV2,
   renainf: extrairRenainf,
+  renajud: extrairRenajud,
 };
 
 /** Extrai campos legíveis do retorno de uma consulta avulsa, usando o
