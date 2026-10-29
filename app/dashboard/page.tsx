@@ -11,8 +11,18 @@ import {
 import { addHistory, countHistoryHoje, getHistory } from "@/lib/history";
 import { VeiculoReal, formatCnpj, formatCpf } from "@/lib/dados-veiculo";
 import { PRECO_PROPRIETARIO_AVULSO_CENTAVOS } from "@/lib/plans";
+import { getConsultaAvulsaPorId, formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
+import { extrairCamposAvulsa } from "@/lib/consultas-avulsas-extratores";
 import Guardiao from "@/components/Guardiao";
 import { useGuardiaoResumo } from "@/components/guardiao-context";
+
+type ResultadoAvulsa =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "ok"; data: Record<string, unknown> }
+  | { status: "error"; errorMessage: string };
+
+const PRECO_RENAJUD_CENTAVOS = getConsultaAvulsaPorId("renajud")?.precoCentavos ?? 0;
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -95,6 +105,11 @@ function DashboardContent() {
     origem: "cota" | "credito" | "avulso";
     creditos: number;
   } | null>(null);
+  /** Renajud (restrição judicial) — igual ao padrão de "Dados do
+   * proprietário": card próprio nesta tela, chamada avulsa sob demanda (só
+   * dispara no clique do botão), debitada do saldo de Consultas Avulsas
+   * (ver app/api/consultas-avulsas). */
+  const [renajud, setRenajud] = useState<ResultadoAvulsa>({ status: "idle" });
   const [showToast, setShowToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Incrementado a cada nova busca (runSearch/runFromCache) — uma resposta
@@ -146,6 +161,7 @@ function DashboardContent() {
     setProprietarioLiberado(false);
     setProprietarioError("");
     setProprietarioSaldo(null);
+    setRenajud({ status: "idle" });
     setSaldoSimples(null);
     setFromCache(false);
     setShowToast(false);
@@ -217,6 +233,29 @@ function DashboardContent() {
     setProprietarioLoading(false);
   }
 
+  /** Dispara a consulta avulsa de Renajud só no clique do botão — não é
+   * chamada automaticamente junto da busca da placa. */
+  async function consultarRenajud() {
+    const placaAlvo = veiculoReal?.placa || result?.placa;
+    if (!placaAlvo) return;
+
+    setRenajud({ status: "loading" });
+
+    try {
+      const response = await fetch(
+        `/api/consultas-avulsas?servico=renajud&placa=${encodeURIComponent(placaAlvo)}`
+      );
+      const payload = await response.json();
+      if (response.ok) {
+        setRenajud({ status: "ok", data: payload.data });
+      } else {
+        setRenajud({ status: "error", errorMessage: payload.error || "Não foi possível consultar." });
+      }
+    } catch {
+      setRenajud({ status: "error", errorMessage: "Não foi possível contatar o servidor." });
+    }
+  }
+
   async function runFromCache(value: string) {
     const requestId = ++requestIdRef.current;
 
@@ -243,6 +282,7 @@ function DashboardContent() {
       setProprietarioLiberado(false);
       setProprietarioError("");
       setProprietarioSaldo(null);
+      setRenajud({ status: "idle" });
       setCpfCnpjCliente("");
       setSaldoSimples(null);
       setShowToast(false);
@@ -371,12 +411,12 @@ function DashboardContent() {
         Ficha do veículo e o nome do proprietário vêm do provedor de dados
         real — só aparece quando a consulta funciona. Débitos de
         IPVA/licenciamento e FIPE ainda não têm fonte de dados disponível
-        nessa consulta. Renavam, chassi, dados do CRV, multas, roubo/furto e
-        Renajud têm consulta avançada real, sob demanda — veja o botão no
-        card Identificação do documento abaixo (custo por consulta). O
-        dossiê completo do proprietário (CPF/CNPJ, telefones, e-mails,
-        endereços) é liberado à parte, no botão do próprio card Dados do
-        proprietário.
+        nessa consulta. Renajud (restrição judicial) tem consulta avançada
+        real, sob demanda — veja o botão no card abaixo (custo por
+        consulta). Multas, roubo/furto e outros serviços de consulta
+        avançada estão na aba &quot;Consulta Avançada&quot;. O dossiê
+        completo do proprietário (CPF/CNPJ, telefones, e-mails, endereços) é
+        liberado à parte, no botão do próprio card Dados do proprietário.
       </div>
 
       {error && <div className="form-error" style={{ maxWidth: 420, marginBottom: 20 }}>{error}</div>}
@@ -703,6 +743,51 @@ function DashboardContent() {
                         .filter(Boolean)
                         .join(", ")}
                     </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {veiculoReal && (
+            <div className="card">
+              <h3>
+                Renajud (restrição judicial){" "}
+                {renajud.status === "ok" && <span className="badge ok">Dados reais</span>}
+              </h3>
+              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                Consulta avançada real via API Brasil, sob demanda — só consulta (e só cobra)
+                quando você clicar.
+              </p>
+              {renajud.status !== "ok" && (
+                <button
+                  type="button"
+                  className="secondary-button destaque"
+                  onClick={() => void consultarRenajud()}
+                  disabled={renajud.status === "loading"}
+                >
+                  {renajud.status === "loading"
+                    ? "Consultando..."
+                    : `Consultar Renajud (${currency.format(PRECO_RENAJUD_CENTAVOS / 100)})`}
+                </button>
+              )}
+              {renajud.status === "error" && (
+                <p className="form-error" style={{ marginTop: 12 }}>
+                  {renajud.errorMessage}
+                </p>
+              )}
+              {renajud.status === "ok" && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+                  {(extrairCamposAvulsa("renajud", renajud.data) ??
+                    Object.entries(renajud.data).map(([chave, valor]) => ({
+                      label: formatarLabelAvulsa(chave),
+                      valor: formatarValorAvulsa(valor),
+                    }))
+                  ).map((campo) => (
+                    <div key={campo.label} className="kv">
+                      <span className="label">{campo.label}</span>
+                      <span className="value">{campo.valor}</span>
+                    </div>
                   ))}
                 </div>
               )}

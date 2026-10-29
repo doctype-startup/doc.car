@@ -105,7 +105,7 @@ export const CONSULTAS_AVULSAS: ConsultaAvulsaServico[] = [
     grupo: "avancada",
     tipoApi: "renajud",
     // Custo da API Brasil: R$3,40 (ver api_precos).
-    precoCentavos: 970,
+    precoCentavos: 1087,
   },
 ];
 

@@ -11,7 +11,7 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
  * Consultar placa cobra cada serviço avançado individualmente (mais a
  * cota/avulso da consulta avançada principal), não um valor fixo único;
  * esse número é só a estimativa exibida aqui. */
-const PRECO_COMBO_EXIBICAO_CENTAVOS = 5208;
+const PRECO_COMBO_EXIBICAO_CENTAVOS = 5325;
 
 // Todo serviço "avançada" ganha link próprio no menu — os que também
 // entram no combo automático de Consultar placa (incluirNoCombo !== false)
