@@ -104,10 +104,8 @@ export const CONSULTAS_AVULSAS: ConsultaAvulsaServico[] = [
     nome: "Renajud (restrição judicial)",
     grupo: "avancada",
     tipoApi: "renajud",
-    // Custo da API Brasil: R$3,40 (ver api_precos). Preço sugerido com a
-    // mesma margem do Renainf (~2,6x) — confirmar com o time antes de
-    // ajustar.
-    precoCentavos: 890,
+    // Custo da API Brasil: R$3,40 (ver api_precos).
+    precoCentavos: 970,
   },
 ];
 
