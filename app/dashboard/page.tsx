@@ -15,7 +15,7 @@ import { ConsultaAvancada } from "@/lib/dados-avancados";
 import { formatarLabelAvulsa, formatarValorAvulsa } from "@/lib/consultas-avulsas";
 import { extrairCamposAvulsa } from "@/lib/consultas-avulsas-extratores";
 import type { ResultadoServicoAvancada } from "@/app/api/consultas-avulsas/avancada/route";
-import { PRECO_AVULSO_CENTAVOS, PRECO_PROPRIETARIO_AVULSO_CENTAVOS } from "@/lib/plans";
+import { PRECO_PROPRIETARIO_AVULSO_CENTAVOS } from "@/lib/plans";
 import Guardiao from "@/components/Guardiao";
 import { useGuardiaoResumo } from "@/components/guardiao-context";
 
@@ -99,7 +99,6 @@ function DashboardContent() {
   const [cpfCnpjCliente, setCpfCnpjCliente] = useState("");
   const [chamadoId, setChamadoId] = useState("");
   const [avancada, setAvancada] = useState<ConsultaAvancada | null>(null);
-  const [avancadaError, setAvancadaError] = useState("");
   const [avancadaLoading, setAvancadaLoading] = useState(false);
   /** Resultado dos serviços do menu "Consultas Avulsas" marcados como
    * "avançada" (lib/consultas-avulsas.ts) — disparados junto com a
@@ -173,7 +172,6 @@ function DashboardContent() {
     setRealError("");
     setCpfCnpjCliente("");
     setAvancada(null);
-    setAvancadaError("");
     setAvulsasAvancada([]);
     setProprietarioLiberado(false);
     setProprietarioError("");
@@ -224,35 +222,19 @@ function DashboardContent() {
     if (!placaAlvo) return;
 
     setAvancadaLoading(true);
-    setAvancadaError("");
 
-    // Dispara a consulta avançada principal (multas/roubo-furto/Renajud) e
-    // todos os serviços do menu "Consultas Avulsas" marcados como
-    // "avançada" (lib/consultas-avulsas.ts) ao mesmo tempo, pra uma única
-    // placa — a segunda complementa a mesma ficha, sem bloquear nem ser
-    // bloqueada pela primeira; fica vazia (sem erro pra exibir) enquanto
-    // nenhum serviço desse grupo estiver cadastrado.
-    const [principal, avulsas] = await Promise.allSettled([
-      fetch(`/api/consulta-avancada?placa=${encodeURIComponent(placaAlvo)}`).then((r) =>
-        r.json().then((payload) => ({ ok: r.ok, payload }))
-      ),
-      fetch(`/api/consultas-avulsas/avancada?placa=${encodeURIComponent(placaAlvo)}`).then((r) =>
-        r.json().then((payload) => ({ ok: r.ok, payload }))
-      ),
-    ]);
-
-    if (principal.status === "fulfilled" && principal.value.ok) {
-      setAvancada(principal.value.payload.data);
-    } else {
-      setAvancadaError(
-        (principal.status === "fulfilled" && principal.value.payload.error) ||
-          "Não foi possível contatar o provedor de dados avançados."
-      );
-    }
-
-    setAvulsasAvancada(
-      avulsas.status === "fulfilled" && avulsas.value.ok ? avulsas.value.payload.resultados ?? [] : []
+    // A consulta avançada antiga (multas/roubo-furto/Renajud via
+    // consultaplacadebitos) está em manutenção — o token do fornecedor
+    // parou de autenticar (ver nota no card "Identificação do documento"),
+    // e não chamamos mais esse endpoint daqui. Esse botão agora só dispara
+    // os serviços do menu "Consultas Avulsas" marcados como "avançada"
+    // (lib/consultas-avulsas.ts) — cada um mostra o próprio resultado/erro
+    // no card correspondente mais abaixo.
+    const response = await fetch(
+      `/api/consultas-avulsas/avancada?placa=${encodeURIComponent(placaAlvo)}`
     );
+    const payload = await response.json().catch(() => null);
+    setAvulsasAvancada(response.ok ? (payload?.resultados ?? []) : []);
 
     setAvancadaLoading(false);
   }
@@ -310,7 +292,6 @@ function DashboardContent() {
 
       setError("");
       setRealError("");
-      setAvancadaError("");
       setAvulsasAvancada([]);
       setProprietarioLiberado(false);
       setProprietarioError("");
@@ -905,22 +886,23 @@ function DashboardContent() {
             </h3>
 
             {!avancada && (
+              <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>
+                Consulta de Renavam, chassi, dados do CRV, multas, roubo/furto e Renajud por
+                essa via está temporariamente em manutenção (trocando de fornecedor) — em
+                breve volta. Enquanto isso, dá pra consultar os itens abaixo
+                (Agregados, Base Nacional, Ficha Técnica etc.) normalmente.
+              </p>
+            )}
+            {!avancada && (
               <button
                 type="button"
-                className="secondary-button destaque no-print"
+                className="secondary-button no-print"
                 onClick={runAvancada}
                 disabled={avancadaLoading}
                 style={{ marginBottom: 12 }}
               >
-                {avancadaLoading
-                  ? "Consultando..."
-                  : `Consultar Renavam, chassi, proprietário, multas, roubo/furto e Renajud reais (${currency.format(PRECO_AVULSO_CENTAVOS / 100)})`}
+                {avancadaLoading ? "Consultando..." : "Consultar outros dados reais disponíveis"}
               </button>
-            )}
-            {avancadaError && (
-              <p className="form-error" style={{ marginBottom: 12 }}>
-                {avancadaError}
-              </p>
             )}
 
             {avancada ? (
@@ -988,13 +970,7 @@ function DashboardContent() {
                   </div>
                 )}
               </div>
-            ) : (
-              !avancadaError && (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nada consta. Clique no botão acima pra consultar dados reais.
-                </p>
-              )
-            )}
+            ) : null}
           </div>
 
           <div className="card">
@@ -1010,12 +986,6 @@ function DashboardContent() {
               Multas{" "}
               {avancada && <span className="badge ok">Dados reais</span>}
             </h3>
-
-            {avancadaError && (
-              <p className="form-error" style={{ marginBottom: 12 }}>
-                {avancadaError}
-              </p>
-            )}
 
             {avancada?.anoUltimoLicenciamento && (
               <div className="grid-2" style={{ marginBottom: 12 }}>
@@ -1119,12 +1089,10 @@ function DashboardContent() {
                 </>
               )
             ) : (
-              !avancadaError && (
-                <p style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Nada consta. Consulte no card Identificação do documento acima pra
-                  liberar dados reais.
-                </p>
-              )
+              <p style={{ fontSize: 13, color: "var(--muted)" }}>
+                Consulta de multas por essa via está temporariamente em manutenção — em breve
+                volta.
+              </p>
             )}
           </div>
 
