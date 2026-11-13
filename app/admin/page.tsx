@@ -405,16 +405,21 @@ export default async function AdminPage() {
                       <div style={{ fontSize: 12, color: "var(--muted)" }}>
                         {despachante.email}
                       </div>
-                      {sub?.stripe_customer_id && (
-                        <a
-                          href={`https://dashboard.stripe.com/customers/${sub.stripe_customer_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontSize: 11 }}
-                        >
-                          Ver no Stripe
-                        </a>
-                      )}
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Link href={`/admin/usuario/${despachante.id}`} style={{ fontSize: 11 }}>
+                          Ver conta
+                        </Link>
+                        {sub?.stripe_customer_id && (
+                          <a
+                            href={`https://dashboard.stripe.com/customers/${sub.stripe_customer_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontSize: 11 }}
+                          >
+                            Ver no Stripe
+                          </a>
+                        )}
+                      </div>
                       {faturas.length > 0 && (
                         <details style={{ marginTop: 6 }}>
                           <summary style={{ fontSize: 11, cursor: "pointer", color: "var(--muted)" }}>
