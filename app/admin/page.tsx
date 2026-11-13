@@ -2,23 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPlanoPorPriceId, PLANOS, PLANO_TESTE } from "@/lib/plans";
+import { getPlanoPorPriceId, PLANO_TESTE } from "@/lib/plans";
 import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import {
-  revogarAcesso,
-  revogarEExcluirDados,
-  concederAcessoManual,
-  criarTeste,
-  concederCreditoManualAdmin,
-} from "./actions";
-import ConfirmSubmitButton from "./confirm-submit-button";
-import WhatsappAcessoButton from "./whatsapp-acesso-button";
-import CopiarLinkButton from "./copiar-link-button";
-import CobrarConsultaSimplesCheckbox from "./cobrar-consulta-simples-checkbox";
+import { criarTeste } from "./actions";
+import AcoesDespachanteMenu from "./acoes-despachante-menu";
 import PasswordField from "@/components/PasswordField";
-import { getConfigGlobal } from "@/lib/config-global";
-import { PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS } from "@/lib/plans";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 // Server component — sem timeZone, o runtime (UTC na Vercel) formataria
@@ -56,60 +45,6 @@ const FATURA_STATUS_LABEL: Record<string, { texto: string; badge: string }> = {
   draft: { texto: "Rascunho", badge: "neutral" },
 };
 
-function ConcederCreditoForm({ userId }: { userId: string }) {
-  return (
-    <form action={concederCreditoManualAdmin.bind(null, userId)} className="admin-actions-group">
-      <select name="tipo" defaultValue="simples" className="admin-select" style={{ fontSize: 12 }}>
-        <option value="simples">Consulta simples</option>
-        <option value="avancada">Consulta avançada</option>
-        <option value="avulsas">Saldo avulsas (R$)</option>
-      </select>
-      <div className="admin-actions-group-row">
-        <input
-          type="number"
-          name="quantidade"
-          placeholder="Qtd."
-          min={0.01}
-          step="any"
-          required
-          className="admin-input"
-          style={{ fontSize: 12 }}
-        />
-        <label className="admin-checkbox-label" style={{ whiteSpace: "nowrap" }}>
-          <input type="checkbox" name="bonus" />
-          Bônus
-        </label>
-      </div>
-      <button type="submit" className="secondary-button" style={{ fontSize: 12, width: "100%" }}>
-        Conceder crédito
-      </button>
-    </form>
-  );
-}
-
-function TrocarPlanoForm({
-  userId,
-  label,
-}: {
-  userId: string;
-  label: string;
-}) {
-  return (
-    <form action={concederAcessoManual.bind(null, userId)} className="admin-actions-group">
-      <select name="plano" defaultValue={PLANOS[0].id} className="admin-select" style={{ fontSize: 12 }}>
-        {PLANOS.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.nome}
-          </option>
-        ))}
-      </select>
-      <button type="submit" className="secondary-button" style={{ fontSize: 12, width: "100%" }}>
-        {label}
-      </button>
-    </form>
-  );
-}
-
 export default async function AdminPage() {
   const supabase = await createClient();
   const {
@@ -131,7 +66,6 @@ export default async function AdminPage() {
   }
 
   const admin = createAdminClient();
-  const configGlobal = await getConfigGlobal(admin);
 
   // last_seen_at é opcional (coluna nova, migration 0017) — se a migration
   // ainda não rodou nesse ambiente, um select pedindo uma coluna
@@ -362,17 +296,6 @@ export default async function AdminPage() {
         </div>
 
         <div className="card" style={{ padding: 16, marginBottom: 24 }}>
-          <h3 style={{ marginBottom: 4, fontSize: 15 }}>Cobrança da consulta simples</h3>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
-            Hoje a consulta simples (busca de placa) é de graça pro despachante enquanto não
-            estoura a cota do plano. Ligando essa opção, toda consulta simples passa a ser
-            cobrada avulsa ({currency.format(PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS / 100)}),
-            mesmo com cota disponível — vale pra todo mundo de uma vez.
-          </p>
-          <CobrarConsultaSimplesCheckbox ativoInicial={configGlobal.cobrarConsultaSimples} />
-        </div>
-
-        <div className="card" style={{ padding: 16, marginBottom: 24 }}>
           <h3 style={{ marginBottom: 4, fontSize: 15 }}>Criar acesso de teste</h3>
           <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
             Cria um teste temporário pra qualquer e-mail, novo ou já cadastrado — sem cobrança,
@@ -566,47 +489,12 @@ export default async function AdminPage() {
                       </div>
                     </td>
                     <td>
-                      {temAcesso ? (
-                        <div className="admin-actions">
-                          <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
-                          <CopiarLinkButton email={despachante.email} />
-                          <ConcederCreditoForm userId={despachante.id} />
-                          {ehManual && (
-                            <TrocarPlanoForm
-                              userId={despachante.id}
-                              label={ehTeste ? "Tornar acesso fixo" : "Trocar plano"}
-                            />
-                          )}
-                          <form action={revogarAcesso.bind(null, despachante.id)}>
-                            <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
-                              Revogar acesso
-                            </button>
-                          </form>
-                          <form action={revogarEExcluirDados.bind(null, despachante.id)}>
-                            <ConfirmSubmitButton
-                              className="danger-button"
-                              confirmText={`Excluir permanentemente a conta e todos os dados de ${despachante.name} (${despachante.email})? Isso cancela a assinatura, apaga perfil, histórico de consultas e uso — não tem como desfazer.`}
-                            >
-                              Revogar e excluir dados
-                            </ConfirmSubmitButton>
-                          </form>
-                        </div>
-                      ) : (
-                        <div className="admin-actions">
-                          <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
-                          <CopiarLinkButton email={despachante.email} />
-                          <ConcederCreditoForm userId={despachante.id} />
-                          <TrocarPlanoForm userId={despachante.id} label="Conceder acesso fixo" />
-                          <form action={revogarEExcluirDados.bind(null, despachante.id)}>
-                            <ConfirmSubmitButton
-                              className="danger-button"
-                              confirmText={`Excluir permanentemente a conta e todos os dados de ${despachante.name} (${despachante.email})? Apaga perfil, histórico de consultas e uso — não tem como desfazer.`}
-                            >
-                              Excluir dados
-                            </ConfirmSubmitButton>
-                          </form>
-                        </div>
-                      )}
+                      <AcoesDespachanteMenu
+                        despachante={despachante}
+                        temAcesso={temAcesso}
+                        ehManual={ehManual}
+                        ehTeste={ehTeste}
+                      />
                     </td>
                   </tr>
                 );

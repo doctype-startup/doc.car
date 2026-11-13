@@ -1072,6 +1072,68 @@ button.wide {
   min-width: 0;
 }
 
+/* Menu suspenso "Ações" da tabela do admin — mesmo padrão do menu
+ * "Consultas Avulsas" do dashboard (botão + painel flutuante), só que no
+ * tema claro da tabela em vez da navbar escura. Esconder as ações atrás
+ * de um botão só mantém a linha da tabela compacta mesmo com vários
+ * formulários dentro do painel. */
+.admin-acoes {
+  position: relative;
+  display: inline-block;
+}
+
+.admin-acoes-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  background: #fafbfc;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.admin-acoes-trigger:hover,
+.admin-acoes-trigger.active {
+  background: #f2f4fa;
+  border-color: var(--brand);
+}
+
+.admin-acoes-caret {
+  font-size: 10px;
+  transition: transform 0.15s ease;
+}
+
+.admin-acoes-trigger.active .admin-acoes-caret {
+  transform: rotate(180deg);
+}
+
+.admin-acoes-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 260px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 40px rgba(6, 19, 63, 0.25);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 40;
+}
+
+.admin-acoes-panel > .secondary-button,
+.admin-acoes-panel > .danger-button,
+.admin-acoes-panel > form > button {
+  width: 100%;
+}
+
 .empty-state .guardiao {
   width: 128px;
   height: 128px;
