@@ -2,11 +2,12 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPlanoPorPriceId } from "@/lib/plans";
+import { getPlanoPorPriceId, PLANO_TESTE, PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS } from "@/lib/plans";
 import { getSaldoAvulsas } from "@/lib/saldo-avulsas";
 import { listarVeiculos } from "@/lib/meus-veiculos";
 import { getConsultaAvulsaPorId } from "@/lib/consultas-avulsas";
 import OcultarPrecosCheckbox from "./ocultar-precos-checkbox";
+import CobrarConsultaSimplesCheckbox from "./cobrar-consulta-simples-checkbox";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 // Server component — sem timeZone, o runtime (UTC na Vercel) formataria
@@ -65,21 +66,26 @@ export default async function AdminUsuarioPage({
     created_at: string;
     last_seen_at: string | null;
     ocultar_precos_login: boolean;
+    cobrar_consulta_simples: boolean;
   } | null = null;
   {
     const { data, error } = await admin
       .from("profiles")
-      .select("id, name, email, created_at, last_seen_at, ocultar_precos_login")
+      .select(
+        "id, name, email, created_at, last_seen_at, ocultar_precos_login, cobrar_consulta_simples"
+      )
       .eq("id", id)
       .maybeSingle();
     if (error) {
-      console.error(`[admin/usuario] falha ao buscar com ocultar_precos_login: ${error.message}`);
+      console.error(`[admin/usuario] falha ao buscar com colunas novas: ${error.message}`);
       const fallback = await admin
         .from("profiles")
         .select("id, name, email, created_at, last_seen_at")
         .eq("id", id)
         .maybeSingle();
-      despachante = fallback.data ? { ...fallback.data, ocultar_precos_login: false } : null;
+      despachante = fallback.data
+        ? { ...fallback.data, ocultar_precos_login: false, cobrar_consulta_simples: false }
+        : null;
     } else {
       despachante = data;
     }
@@ -121,6 +127,7 @@ export default async function AdminUsuarioPage({
   const status = sub?.status ? STATUS_LABEL[sub.status] : undefined;
   const temAcesso = sub?.status === "active" || sub?.status === "trialing";
   const ehManual = temAcesso && !sub?.stripe_subscription_id;
+  const ehTeste = ehManual && sub?.price_id === PLANO_TESTE.priceId;
 
   return (
     <div className="app-shell">
@@ -155,6 +162,19 @@ export default async function AdminUsuarioPage({
           </p>
         </div>
 
+        <div className="card" style={{ padding: 12, marginBottom: 20, maxWidth: 420 }}>
+          <CobrarConsultaSimplesCheckbox
+            userId={despachante.id}
+            ativoInicial={Boolean(despachante.cobrar_consulta_simples)}
+          />
+          <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 6 }}>
+            Hoje a consulta simples (busca de placa) é de graça pra esse despachante enquanto não
+            estoura a cota do plano. Ligando essa opção, toda consulta simples dele passa a ser
+            cobrada avulsa ({currency.format(PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS / 100)}),
+            mesmo com cota disponível — descontando primeiro do saldo de recarga, se tiver.
+          </p>
+        </div>
+
         <div className="grid-3" style={{ marginBottom: 24 }}>
           <div className="card kv" style={{ margin: 0 }}>
             <span className="label">Cadastrado em</span>
@@ -173,7 +193,9 @@ export default async function AdminUsuarioPage({
             <span className="value" style={{ marginTop: 4 }}>
               {plano?.nome ?? "—"}{" "}
               {ehManual ? (
-                <span className="badge neutral">Acesso manual (teste)</span>
+                <span className="badge neutral">
+                  {ehTeste ? "Acesso manual (teste)" : "Acesso manual (fixo)"}
+                </span>
               ) : status ? (
                 <span className={`badge ${status.badge}`}>{status.texto}</span>
               ) : (

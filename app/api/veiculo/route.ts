@@ -11,7 +11,6 @@ import {
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { salvarVeiculoCache } from "@/lib/consulta-cache";
 import { registrarStatusProvedor } from "@/lib/status-provedor";
-import { getConfigGlobal } from "@/lib/config-global";
 
 function inicioDoPeriodo(currentPeriodStart: string | null) {
   if (currentPeriodStart) return currentPeriodStart;
@@ -69,6 +68,16 @@ export async function GET(request: NextRequest) {
     .eq("user_id", user.id)
     .maybeSingle();
 
+  // cobrar_consulta_simples é coluna nova (migration 0020) — se ainda não
+  // rodou nesse ambiente, cai pro padrão (não cobrar), igual o app se
+  // comportava antes dessa opção existir.
+  const { data: perfil } = await supabase
+    .from("profiles")
+    .select("cobrar_consulta_simples")
+    .eq("id", user.id)
+    .maybeSingle();
+  const cobrarConsultaSimplesSempre = Boolean(perfil?.cobrar_consulta_simples);
+
   const hasActiveAccess =
     subscription?.status === "active" || subscription?.status === "trialing";
 
@@ -103,9 +112,9 @@ export async function GET(request: NextRequest) {
   }
 
   // Com a cota disponível, só cobra se "Cobrar consulta simples" estiver
-  // ligada no super admin — senão seria sempre "cota" (de graça), como
-  // sempre foi.
-  const cobrarMesmoComCota = !estourouCota && (await getConfigGlobal(supabase)).cobrarConsultaSimples;
+  // ligada pra esse despachante no super admin — senão seria sempre
+  // "cota" (de graça), como sempre foi.
+  const cobrarMesmoComCota = !estourouCota && cobrarConsultaSimplesSempre;
 
   let origem: "cota" | "credito" | "avulso" = "cota";
   if (estourouCota || cobrarMesmoComCota) {
