@@ -944,24 +944,11 @@ button.wide {
   border-bottom: none;
 }
 
-/* Coluna "Ações" (formulário de crédito manual, revogar acesso etc.) fica
- * fixa à direita — a tabela tem muitas colunas e rola horizontalmente, e sem
- * isso a ação principal do admin ficava escondida fora da tela. */
-.admin-table th:last-child,
-.admin-table td:last-child {
-  position: sticky;
-  right: 0;
-  z-index: 1;
-  box-shadow: -8px 0 8px -8px rgba(6, 19, 63, 0.12);
-}
-
-.admin-table td:last-child {
-  background: #fff;
-}
-
-.admin-table tbody tr:hover td:last-child {
-  background: #fafbfc;
-}
+/* A coluna "Ações" já teve um truque de position: sticky pra ficar sempre
+ * visível sem precisar rolar — mas ela cresceu demais (vários formulários
+ * empilhados) e passou a sobrepor e esconder as colunas vizinhas (Saldos,
+ * Gastos, Acesso) por baixo. Removido: agora é só rolagem normal, igual
+ * ao resto da tabela, sem sobreposição. */
 
 /* ---------- Painel do admin ---------- */
 
@@ -1037,8 +1024,9 @@ button.wide {
 .admin-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
+  gap: 10px;
+  align-items: stretch;
+  min-width: 220px;
 }
 
 .admin-actions form {
@@ -1046,6 +1034,42 @@ button.wide {
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.admin-actions > .secondary-button,
+.admin-actions > .danger-button,
+.admin-actions > form > button {
+  width: 100%;
+}
+
+/* Agrupa um formulário com vários campos (crédito manual, trocar plano)
+ * num bloco visualmente separado dos botões de ação única — sem isso os
+ * campos (select, input, checkbox, botão) quebram linha de um jeito
+ * desigual dentro da coluna estreita "Ações". */
+.admin-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fafbfc;
+}
+
+.admin-actions-group .admin-select,
+.admin-actions-group .admin-input {
+  width: 100%;
+}
+
+.admin-actions-group-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.admin-actions-group-row .admin-input {
+  flex: 1;
+  min-width: 0;
 }
 
 .empty-state .guardiao {
