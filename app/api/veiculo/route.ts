@@ -102,8 +102,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: result.errorMessage }, { status: 502 });
   }
 
+  // Com a cota disponível, só cobra se "Cobrar consulta simples" estiver
+  // ligada no super admin — senão seria sempre "cota" (de graça), como
+  // sempre foi.
+  const cobrarMesmoComCota = !estourouCota && (await getConfigGlobal(supabase)).cobrarConsultaSimples;
+
   let origem: "cota" | "credito" | "avulso" = "cota";
-  if (estourouCota) {
+  if (estourouCota || cobrarMesmoComCota) {
+    // Desconta primeiro do saldo de recarga que o despachante já comprou
+    // (recargas_simples) — só cobra avulso de verdade quando não sobra
+    // nenhum crédito. Sem isso, ligar a opção no admin cobraria em cima
+    // de um saldo que o cliente já pagou, em vez de consumi-lo.
     const usouCredito = await consumirCredito(user.id);
     if (usouCredito) {
       origem = "credito";
@@ -112,21 +121,8 @@ export async function GET(request: NextRequest) {
       await cobrarAvulsoSimples(
         subscription?.stripe_customer_id ?? null,
         placa,
-        PRECO_AVULSO_SIMPLES_CENTAVOS,
-        `Consulta simples avulsa — placa ${placa}`
-      );
-    }
-  } else {
-    // Dentro da cota (que normalmente seria "de graça") — só cobra se a
-    // opção "Cobrar consulta simples" estiver ligada no super admin.
-    const config = await getConfigGlobal(supabase);
-    if (config.cobrarConsultaSimples) {
-      origem = "avulso";
-      await cobrarAvulsoSimples(
-        subscription?.stripe_customer_id ?? null,
-        placa,
-        PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS,
-        `Consulta simples — placa ${placa}`
+        estourouCota ? PRECO_AVULSO_SIMPLES_CENTAVOS : PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS,
+        estourouCota ? `Consulta simples avulsa — placa ${placa}` : `Consulta simples — placa ${placa}`
       );
     }
   }

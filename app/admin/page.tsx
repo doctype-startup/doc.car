@@ -58,31 +58,53 @@ const FATURA_STATUS_LABEL: Record<string, { texto: string; badge: string }> = {
 
 function ConcederCreditoForm({ userId }: { userId: string }) {
   return (
-    <form
-      action={concederCreditoManualAdmin.bind(null, userId)}
-      style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
-    >
+    <form action={concederCreditoManualAdmin.bind(null, userId)} className="admin-actions-group">
       <select name="tipo" defaultValue="simples" className="admin-select" style={{ fontSize: 12 }}>
         <option value="simples">Consulta simples</option>
         <option value="avancada">Consulta avançada</option>
         <option value="avulsas">Saldo avulsas (R$)</option>
       </select>
-      <input
-        type="number"
-        name="quantidade"
-        placeholder="Qtd."
-        min={0.01}
-        step="any"
-        required
-        className="admin-input"
-        style={{ fontSize: 12, width: 70 }}
-      />
-      <label className="admin-checkbox-label">
-        <input type="checkbox" name="bonus" />
-        Bônus
-      </label>
-      <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
+      <div className="admin-actions-group-row">
+        <input
+          type="number"
+          name="quantidade"
+          placeholder="Qtd."
+          min={0.01}
+          step="any"
+          required
+          className="admin-input"
+          style={{ fontSize: 12 }}
+        />
+        <label className="admin-checkbox-label" style={{ whiteSpace: "nowrap" }}>
+          <input type="checkbox" name="bonus" />
+          Bônus
+        </label>
+      </div>
+      <button type="submit" className="secondary-button" style={{ fontSize: 12, width: "100%" }}>
         Conceder crédito
+      </button>
+    </form>
+  );
+}
+
+function TrocarPlanoForm({
+  userId,
+  label,
+}: {
+  userId: string;
+  label: string;
+}) {
+  return (
+    <form action={concederAcessoManual.bind(null, userId)} className="admin-actions-group">
+      <select name="plano" defaultValue={PLANOS[0].id} className="admin-select" style={{ fontSize: 12 }}>
+        {PLANOS.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.nome}
+          </option>
+        ))}
+      </select>
+      <button type="submit" className="secondary-button" style={{ fontSize: 12, width: "100%" }}>
+        {label}
       </button>
     </form>
   );
@@ -420,6 +442,10 @@ export default async function AdminPage() {
                 ({ despachante, sub, plano, uso, faturas, gastoTotal, ultimoAcesso, online, quantidades, saldos }) => {
                 const temAcesso = sub?.status === "active" || sub?.status === "trialing";
                 const ehManual = temAcesso && !sub?.stripe_subscription_id;
+                // Diferencia o teste temporário (PLANO_TESTE, criado em "Criar
+                // acesso de teste", com prazo e cota reduzida) do acesso manual
+                // fixo (um plano de verdade, concedido sem Stripe, sem prazo).
+                const ehTeste = ehManual && sub?.price_id === PLANO_TESTE.priceId;
                 const status = sub?.status ? STATUS_LABEL[sub.status] : undefined;
 
                 return (
@@ -480,7 +506,9 @@ export default async function AdminPage() {
                     <td>
                       {ehManual ? (
                         <>
-                          <span className="badge neutral">Acesso manual (teste)</span>
+                          <span className="badge neutral">
+                            {ehTeste ? "Acesso manual (teste)" : "Acesso manual (fixo)"}
+                          </span>
                           {sub?.current_period_end && (
                             <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
                               até {dataCurta.format(new Date(sub.current_period_end))}
@@ -543,6 +571,12 @@ export default async function AdminPage() {
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
                           <CopiarLinkButton email={despachante.email} />
                           <ConcederCreditoForm userId={despachante.id} />
+                          {ehManual && (
+                            <TrocarPlanoForm
+                              userId={despachante.id}
+                              label={ehTeste ? "Tornar acesso fixo" : "Trocar plano"}
+                            />
+                          )}
                           <form action={revogarAcesso.bind(null, despachante.id)}>
                             <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
                               Revogar acesso
@@ -562,18 +596,7 @@ export default async function AdminPage() {
                           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
                           <CopiarLinkButton email={despachante.email} />
                           <ConcederCreditoForm userId={despachante.id} />
-                          <form action={concederAcessoManual.bind(null, despachante.id)}>
-                            <select name="plano" defaultValue={PLANOS[0].id} className="admin-select" style={{ fontSize: 12 }}>
-                              {PLANOS.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.nome}
-                                </option>
-                              ))}
-                            </select>
-                            <button type="submit" className="secondary-button" style={{ fontSize: 12 }}>
-                              Conceder teste
-                            </button>
-                          </form>
+                          <TrocarPlanoForm userId={despachante.id} label="Conceder acesso fixo" />
                           <form action={revogarEExcluirDados.bind(null, despachante.id)}>
                             <ConfirmSubmitButton
                               className="danger-button"
