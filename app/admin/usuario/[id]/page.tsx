@@ -48,11 +48,36 @@ export default async function AdminUsuarioPage({
 
   const admin = createAdminClient();
 
-  const { data: despachante } = await admin
-    .from("profiles")
-    .select("id, name, email, created_at, last_seen_at, ocultar_precos_login")
-    .eq("id", id)
-    .maybeSingle();
+  // ocultar_precos_login é coluna nova (migration 0018) — se ainda não
+  // rodou nesse ambiente, pedir ela junto faz o select inteiro falhar (o
+  // despachante viraria "não encontrado", não só o checkbox sumir). Tenta
+  // com ela primeiro; se falhar, cai pra sem ela.
+  let despachante: {
+    id: string;
+    name: string;
+    email: string;
+    created_at: string;
+    last_seen_at: string | null;
+    ocultar_precos_login: boolean;
+  } | null = null;
+  {
+    const { data, error } = await admin
+      .from("profiles")
+      .select("id, name, email, created_at, last_seen_at, ocultar_precos_login")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) {
+      console.error(`[admin/usuario] falha ao buscar com ocultar_precos_login: ${error.message}`);
+      const fallback = await admin
+        .from("profiles")
+        .select("id, name, email, created_at, last_seen_at")
+        .eq("id", id)
+        .maybeSingle();
+      despachante = fallback.data ? { ...fallback.data, ocultar_precos_login: false } : null;
+    } else {
+      despachante = data;
+    }
+  }
 
   if (!despachante) notFound();
 
