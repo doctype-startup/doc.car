@@ -284,3 +284,22 @@ export async function concederCreditoManualAdmin(userId: string, formData: FormD
 
   revalidatePath("/admin");
 }
+
+/** Liga/desliga a tabela de preços dos planos na tela de login pro link de
+ * acesso personalizado (/login?email=...) desse despachante — pra quem
+ * paga direto com a DOCTYPE (valor negociado, fora do preço público). */
+export async function definirOcultarPrecosLogin(userId: string, formData: FormData) {
+  await exigirAdmin();
+  const admin = createAdminClient();
+
+  const ocultar = formData.get("ocultar") === "on";
+
+  const { error } = await admin
+    .from("profiles")
+    .update({ ocultar_precos_login: ocultar })
+    .eq("id", userId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/admin/usuario/${userId}`);
+}

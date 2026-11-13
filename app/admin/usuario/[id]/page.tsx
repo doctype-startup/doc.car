@@ -6,6 +6,7 @@ import { getPlanoPorPriceId } from "@/lib/plans";
 import { getSaldoAvulsas } from "@/lib/saldo-avulsas";
 import { listarVeiculos } from "@/lib/meus-veiculos";
 import { getConsultaAvulsaPorId } from "@/lib/consultas-avulsas";
+import OcultarPrecosCheckbox from "./ocultar-precos-checkbox";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dataHora = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -49,7 +50,7 @@ export default async function AdminUsuarioPage({
 
   const { data: despachante } = await admin
     .from("profiles")
-    .select("id, name, email, created_at, last_seen_at")
+    .select("id, name, email, created_at, last_seen_at, ocultar_precos_login")
     .eq("id", id)
     .maybeSingle();
 
@@ -105,11 +106,23 @@ export default async function AdminUsuarioPage({
       <div className="orange-line" />
       <main className="app-content">
         <h2 style={{ marginBottom: 4 }}>{despachante.name}</h2>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 20 }}>
-          {despachante.email} · Visão só-leitura, pra suporte/manutenção. Ações (revogar acesso,
+        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+          {despachante.email} · Visão de suporte/manutenção. Ações de conta (revogar acesso,
           conceder crédito, excluir dados) continuam na{" "}
           <Link href="/admin">listagem principal</Link>.
         </p>
+
+        <div className="card" style={{ padding: 12, marginBottom: 20, maxWidth: 420 }}>
+          <OcultarPrecosCheckbox
+            userId={despachante.id}
+            ocultoInicial={Boolean(despachante.ocultar_precos_login)}
+          />
+          <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 6 }}>
+            Pra despachante que paga direto com a DOCTYPE (valor negociado) — esconde a tabela de
+            preços dos planos quando ele abre o link de acesso personalizado copiado na listagem
+            principal.
+          </p>
+        </div>
 
         <div className="grid-3" style={{ marginBottom: 24 }}>
           <div className="card kv" style={{ margin: 0 }}>
