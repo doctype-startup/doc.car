@@ -6,7 +6,12 @@ import { salvarPreco, removerPreco } from "./actions";
 import ConfirmSubmitButton from "../confirm-submit-button";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const dataCurta = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
+// Server component — sem timeZone, o runtime (UTC na Vercel) formataria
+// hora errada pra quem está no Brasil.
+const dataCurta = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
 
 type PrecoApi = {
   id: string;

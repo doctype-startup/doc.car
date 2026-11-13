@@ -15,11 +15,23 @@ import {
 import ConfirmSubmitButton from "./confirm-submit-button";
 import WhatsappAcessoButton from "./whatsapp-acesso-button";
 import CopiarLinkButton from "./copiar-link-button";
+import CobrarConsultaSimplesCheckbox from "./cobrar-consulta-simples-checkbox";
 import PasswordField from "@/components/PasswordField";
+import { getConfigGlobal } from "@/lib/config-global";
+import { PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS } from "@/lib/plans";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const dataHora = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
-const dataCurta = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
+// Server component — sem timeZone, o runtime (UTC na Vercel) formataria
+// hora errada pra quem está no Brasil.
+const dataHora = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
+const dataCurta = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
 
 function inicioDoMesAtual() {
   const inicio = new Date();
@@ -97,6 +109,7 @@ export default async function AdminPage() {
   }
 
   const admin = createAdminClient();
+  const configGlobal = await getConfigGlobal(admin);
 
   // last_seen_at é opcional (coluna nova, migration 0017) — se a migration
   // ainda não rodou nesse ambiente, um select pedindo uma coluna
@@ -324,6 +337,17 @@ export default async function AdminPage() {
               {currency.format(recebidoNoMesCentavos / 100)}
             </span>
           </div>
+        </div>
+
+        <div className="card" style={{ padding: 16, marginBottom: 24 }}>
+          <h3 style={{ marginBottom: 4, fontSize: 15 }}>Cobrança da consulta simples</h3>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+            Hoje a consulta simples (busca de placa) é de graça pro despachante enquanto não
+            estoura a cota do plano. Ligando essa opção, toda consulta simples passa a ser
+            cobrada avulsa ({currency.format(PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS / 100)}),
+            mesmo com cota disponível — vale pra todo mundo de uma vez.
+          </p>
+          <CobrarConsultaSimplesCheckbox ativoInicial={configGlobal.cobrarConsultaSimples} />
         </div>
 
         <div className="card" style={{ padding: 16, marginBottom: 24 }}>

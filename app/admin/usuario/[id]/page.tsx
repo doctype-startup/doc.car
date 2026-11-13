@@ -9,7 +9,13 @@ import { getConsultaAvulsaPorId } from "@/lib/consultas-avulsas";
 import OcultarPrecosCheckbox from "./ocultar-precos-checkbox";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const dataHora = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
+// Server component — sem timeZone, o runtime (UTC na Vercel) formataria
+// hora errada pra quem está no Brasil.
+const dataHora = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
 
 const STATUS_LABEL: Record<string, { texto: string; badge: string }> = {
   active: { texto: "Ativa", badge: "ok" },

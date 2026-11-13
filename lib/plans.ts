@@ -19,6 +19,13 @@ export const PRECO_AVULSO_CENTAVOS = 4760;
  * centavos. */
 export const PRECO_AVULSO_SIMPLES_CENTAVOS = 1290;
 
+/** Preço cobrado por consulta simples mesmo DENTRO da cota do plano,
+ * quando a opção "Cobrar consulta simples" está ligada no super admin
+ * (ver lib/config-global.ts) — decisão de negócio pra parar de dar de
+ * graça uma consulta que tem custo real pra DOCTYPE. Diferente do avulso
+ * acima, que só vale quando a cota já estourou. Em centavos. */
+export const PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS = 578;
+
 /** Preço de liberar o dossiê completo do proprietário (CPF/CNPJ, nome da
  * mãe, telefones, endereços) na ficha da consulta simples — desconta da
  * mesma cota de consulta avançada do plano quando disponível; cobrado
