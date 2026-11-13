@@ -453,8 +453,8 @@ function DashboardContent() {
       {saldoSimples && saldoSimples.origem !== "cota" && (
         <div className="info-banner no-print" style={{ marginBottom: 20 }}>
           {saldoSimples.origem === "credito"
-            ? `Cota de consultas simples do mês esgotada — essa consulta usou 1 crédito de recarga (restam ${saldoSimples.creditos}).`
-            : `Cota de consultas simples do mês esgotada e sem crédito de recarga disponível — essa consulta foi cobrada avulsa.`}{" "}
+            ? `Essa consulta usou 1 crédito de recarga (restam ${saldoSimples.creditos}).`
+            : `Essa consulta foi cobrada avulsa.`}{" "}
           <a href="/dashboard/creditos">Ver créditos</a>
         </div>
       )}

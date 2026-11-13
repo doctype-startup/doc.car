@@ -3,10 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { consultarVeiculoPorPlaca, isPlacaApiConfigured } from "@/lib/dados-veiculo";
 import { contarUsoSimplesNoPeriodo, registrarUsoSimples } from "@/lib/uso-simples";
 import { consumirCredito, getSaldoCreditos } from "@/lib/creditos";
-import { getPlanoPorPriceId, PRECO_AVULSO_SIMPLES_CENTAVOS } from "@/lib/plans";
+import {
+  getPlanoPorPriceId,
+  PRECO_AVULSO_SIMPLES_CENTAVOS,
+  PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS,
+} from "@/lib/plans";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { salvarVeiculoCache } from "@/lib/consulta-cache";
 import { registrarStatusProvedor } from "@/lib/status-provedor";
+import { getConfigGlobal } from "@/lib/config-global";
 
 function inicioDoPeriodo(currentPeriodStart: string | null) {
   if (currentPeriodStart) return currentPeriodStart;
@@ -18,7 +23,12 @@ function inicioDoPeriodo(currentPeriodStart: string | null) {
   return inicioDoMes.toISOString();
 }
 
-async function cobrarAvulsoSimples(stripeCustomerId: string | null, placa: string) {
+async function cobrarAvulsoSimples(
+  stripeCustomerId: string | null,
+  placa: string,
+  valorCentavos: number,
+  descricao: string
+) {
   if (!isStripeConfigured || !stripeCustomerId) {
     console.error(
       `[dados-veiculo] cobrança avulsa não registrada (Stripe/cliente indisponível) — placa=${placa}`
@@ -28,9 +38,9 @@ async function cobrarAvulsoSimples(stripeCustomerId: string | null, placa: strin
   try {
     await getStripe().invoiceItems.create({
       customer: stripeCustomerId,
-      amount: PRECO_AVULSO_SIMPLES_CENTAVOS,
+      amount: valorCentavos,
       currency: "brl",
-      description: `Consulta simples avulsa — placa ${placa}`,
+      description: descricao,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "erro desconhecido";
@@ -99,7 +109,25 @@ export async function GET(request: NextRequest) {
       origem = "credito";
     } else {
       origem = "avulso";
-      await cobrarAvulsoSimples(subscription?.stripe_customer_id ?? null, placa);
+      await cobrarAvulsoSimples(
+        subscription?.stripe_customer_id ?? null,
+        placa,
+        PRECO_AVULSO_SIMPLES_CENTAVOS,
+        `Consulta simples avulsa — placa ${placa}`
+      );
+    }
+  } else {
+    // Dentro da cota (que normalmente seria "de graça") — só cobra se a
+    // opção "Cobrar consulta simples" estiver ligada no super admin.
+    const config = await getConfigGlobal(supabase);
+    if (config.cobrarConsultaSimples) {
+      origem = "avulso";
+      await cobrarAvulsoSimples(
+        subscription?.stripe_customer_id ?? null,
+        placa,
+        PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS,
+        `Consulta simples — placa ${placa}`
+      );
     }
   }
 

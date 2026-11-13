@@ -303,3 +303,23 @@ export async function definirOcultarPrecosLogin(userId: string, formData: FormDa
 
   revalidatePath(`/admin/usuario/${userId}`);
 }
+
+/** Liga/desliga a cobrança da consulta simples mesmo dentro da cota do
+ * plano (hoje ela é "de graça" pro despachante enquanto não estoura a
+ * cota) — decisão de negócio global, vale pra todo mundo de uma vez. Ver
+ * PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS em lib/plans.ts pro valor
+ * cobrado. */
+export async function definirCobrarConsultaSimples(formData: FormData) {
+  await exigirAdmin();
+  const admin = createAdminClient();
+
+  const ativar = formData.get("ativar") === "on";
+
+  const { error } = await admin
+    .from("config_global")
+    .upsert({ id: true, cobrar_consulta_simples: ativar });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin");
+}
