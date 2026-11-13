@@ -18,8 +18,17 @@ import CopiarLinkButton from "./copiar-link-button";
 import PasswordField from "@/components/PasswordField";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const dataHora = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" });
-const dataCurta = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
+// Server component — sem timeZone, o runtime (UTC na Vercel) formataria
+// hora errada pra quem está no Brasil.
+const dataHora = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
+const dataCurta = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short",
+  timeZone: "America/Sao_Paulo",
+});
 
 function inicioDoMesAtual() {
   const inicio = new Date();
