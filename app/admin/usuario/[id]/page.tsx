@@ -6,6 +6,7 @@ import { getPlanoPorPriceId, PLANO_TESTE, PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS
 import { getSaldoAvulsas } from "@/lib/saldo-avulsas";
 import { listarVeiculos } from "@/lib/meus-veiculos";
 import { getConsultaAvulsaPorId } from "@/lib/consultas-avulsas";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import OcultarPrecosCheckbox from "./ocultar-precos-checkbox";
 import CobrarConsultaSimplesCheckbox from "./cobrar-consulta-simples-checkbox";
 
@@ -17,6 +18,33 @@ const dataHora = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
   timeZone: "America/Sao_Paulo",
 });
+
+const FATURA_STATUS_LABEL: Record<string, { texto: string; badge: string }> = {
+  paid: { texto: "Paga", badge: "ok" },
+  open: { texto: "Em aberto", badge: "warn" },
+  uncollectible: { texto: "Não cobrada", badge: "warn" },
+  void: { texto: "Anulada", badge: "neutral" },
+  draft: { texto: "Rascunho", badge: "neutral" },
+};
+
+async function buscarFaturas(stripeCustomerId: string | null) {
+  if (!stripeCustomerId || !isStripeConfigured) return [];
+
+  try {
+    const resultado = await getStripe().invoices.list({ customer: stripeCustomerId, limit: 20 });
+    return resultado.data.map((fatura) => ({
+      id: fatura.id ?? "",
+      valor: (fatura.amount_paid || fatura.amount_due) / 100,
+      status: fatura.status ?? "draft",
+      criadaEm: new Date(fatura.created * 1000),
+      url: fatura.hosted_invoice_url ?? null,
+    }));
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "erro desconhecido";
+    console.error(`[admin/usuario] falha ao buscar faturas no Stripe: ${message}`);
+    return [];
+  }
+}
 
 const STATUS_LABEL: Record<string, { texto: string; badge: string }> = {
   active: { texto: "Ativa", badge: "ok" },
@@ -93,20 +121,28 @@ export default async function AdminUsuarioPage({
 
   if (!despachante) notFound();
 
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select(
+      "status, price_id, current_period_start, current_period_end, stripe_customer_id, stripe_subscription_id"
+    )
+    .eq("user_id", id)
+    .maybeSingle();
+
+  const agora = new Date().toISOString();
+
   const [
-    { data: sub },
     saldoAvulsasCentavos,
     veiculos,
     { data: historico },
     { data: avulsasRecentes },
+    { count: qtdSimples },
+    { count: qtdAvancada },
+    { count: qtdAvulsas },
+    { data: recargasSimplesAtivas },
+    { data: recargasAvancadaAtivas },
+    faturas,
   ] = await Promise.all([
-    admin
-      .from("subscriptions")
-      .select(
-        "status, price_id, current_period_start, current_period_end, stripe_customer_id, stripe_subscription_id"
-      )
-      .eq("user_id", id)
-      .maybeSingle(),
     getSaldoAvulsas(admin, id),
     listarVeiculos(admin, id).catch(() => []),
     admin
@@ -121,7 +157,38 @@ export default async function AdminUsuarioPage({
       .eq("user_id", id)
       .order("consultado_em", { ascending: false })
       .limit(20),
+    admin.from("simples_usage").select("id", { count: "exact", head: true }).eq("user_id", id),
+    admin.from("avancada_usage").select("id", { count: "exact", head: true }).eq("user_id", id),
+    admin
+      .from("consultas_avulsas_uso")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", id),
+    admin
+      .from("recargas_simples")
+      .select("creditos_restantes")
+      .eq("user_id", id)
+      .gt("creditos_restantes", 0)
+      .gt("expira_em", agora),
+    admin
+      .from("recargas_avancada")
+      .select("creditos_restantes")
+      .eq("user_id", id)
+      .gt("creditos_restantes", 0)
+      .gt("expira_em", agora),
+    buscarFaturas(sub?.stripe_customer_id ?? null),
   ]);
+
+  const saldoSimples = (recargasSimplesAtivas ?? []).reduce(
+    (soma, r) => soma + r.creditos_restantes,
+    0
+  );
+  const saldoAvancada = (recargasAvancadaAtivas ?? []).reduce(
+    (soma, r) => soma + r.creditos_restantes,
+    0
+  );
+  const gastoTotal = faturas
+    .filter((f) => f.status === "paid")
+    .reduce((soma, f) => soma + f.valor, 0);
 
   const plano = getPlanoPorPriceId(sub?.price_id);
   const status = sub?.status ? STATUS_LABEL[sub.status] : undefined;
@@ -207,15 +274,15 @@ export default async function AdminUsuarioPage({
 
         <div className="grid-3" style={{ marginBottom: 24 }}>
           <div className="card kv" style={{ margin: 0 }}>
-            <span className="label">Saldo avulsas</span>
-            <span className="value" style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>
-              {currency.format(saldoAvulsasCentavos / 100)}
-            </span>
-          </div>
-          <div className="card kv" style={{ margin: 0 }}>
             <span className="label">Veículos cadastrados</span>
             <span className="value" style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>
               {veiculos.length}
+            </span>
+          </div>
+          <div className="card kv" style={{ margin: 0 }}>
+            <span className="label">Gasto total (faturas pagas)</span>
+            <span className="value" style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>
+              {currency.format(gastoTotal)}
             </span>
           </div>
           {sub?.stripe_customer_id && (
@@ -231,6 +298,70 @@ export default async function AdminUsuarioPage({
               </a>
             </div>
           )}
+        </div>
+
+        <div className="grid-3" style={{ marginBottom: 24 }}>
+          <div className="card">
+            <h3 style={{ marginBottom: 12, fontSize: 15 }}>Consultas (total)</h3>
+            <div className="admin-stat-list">
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Simples:</span>
+                <span className="admin-stat-value">{qtdSimples ?? 0}</span>
+              </div>
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Avançada:</span>
+                <span className="admin-stat-value">{qtdAvancada ?? 0}</span>
+              </div>
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Avulsas:</span>
+                <span className="admin-stat-value">{qtdAvulsas ?? 0}</span>
+              </div>
+            </div>
+          </div>
+          <div className="card">
+            <h3 style={{ marginBottom: 12, fontSize: 15 }}>Saldos disponíveis</h3>
+            <div className="admin-stat-list">
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Simples:</span>
+                <span className="admin-stat-value">{saldoSimples} créditos</span>
+              </div>
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Avançada:</span>
+                <span className="admin-stat-value">{saldoAvancada} créditos</span>
+              </div>
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Avulsas:</span>
+                <span className="admin-stat-value">{currency.format(saldoAvulsasCentavos / 100)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="card">
+            <h3 style={{ marginBottom: 12, fontSize: 15 }}>Faturas (últimas 20)</h3>
+            {faturas.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--muted)" }}>Nenhuma fatura ainda.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 140, overflowY: "auto" }}>
+                {faturas.map((f) => {
+                  const fStatus = FATURA_STATUS_LABEL[f.status] ?? { texto: f.status, badge: "neutral" };
+                  return (
+                    <div key={f.id} style={{ fontSize: 12 }}>
+                      {dataHora.format(f.criadaEm)} · {currency.format(f.valor)} ·{" "}
+                      <span className={`badge ${fStatus.badge}`}>{fStatus.texto}</span>
+                      {f.url && (
+                        <>
+                          {" "}
+                          ·{" "}
+                          <a href={f.url} target="_blank" rel="noopener noreferrer">
+                            ver
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="card" style={{ marginBottom: 24 }}>
