@@ -99,57 +99,10 @@ export default async function AdminPage() {
 
   const subsPorUsuario = new Map((subscriptions ?? []).map((s) => [s.user_id, s]));
 
-  // Quantidades e saldos — uma busca por tabela pra todo mundo, agregada em
-  // memória, em vez de uma consulta por despachante.
+  // Quantidades, saldos e gastos por despachante saíram dessa tabela (ficou
+  // só o essencial pra visão geral) — agora moram na página "Ver conta"
+  // (/admin/usuario/[id]) de cada um.
   const agora = new Date();
-  const [
-    { data: usoSimples },
-    { data: usoAvancada },
-    { data: usoAvulsas },
-    { data: recargasSimplesAtivas },
-    { data: recargasAvancadaAtivas },
-    { data: saldosAvulsas },
-  ] = await Promise.all([
-    admin.from("simples_usage").select("user_id"),
-    admin.from("avancada_usage").select("user_id"),
-    admin.from("consultas_avulsas_uso").select("user_id"),
-    admin
-      .from("recargas_simples")
-      .select("user_id, creditos_restantes")
-      .gt("creditos_restantes", 0)
-      .gt("expira_em", agora.toISOString()),
-    admin
-      .from("recargas_avancada")
-      .select("user_id, creditos_restantes")
-      .gt("creditos_restantes", 0)
-      .gt("expira_em", agora.toISOString()),
-    admin.from("saldo_avulsas").select("user_id, saldo_centavos"),
-  ]);
-
-  function contarPorUsuario(linhas: { user_id: string }[] | null) {
-    const mapa = new Map<string, number>();
-    for (const l of linhas ?? []) {
-      mapa.set(l.user_id, (mapa.get(l.user_id) ?? 0) + 1);
-    }
-    return mapa;
-  }
-
-  function somarPorUsuario(linhas: { user_id: string; [campo: string]: unknown }[] | null, campo: string) {
-    const mapa = new Map<string, number>();
-    for (const l of linhas ?? []) {
-      mapa.set(l.user_id, (mapa.get(l.user_id) ?? 0) + Number(l[campo] ?? 0));
-    }
-    return mapa;
-  }
-
-  const qtdSimplesPorUsuario = contarPorUsuario(usoSimples);
-  const qtdAvancadaPorUsuario = contarPorUsuario(usoAvancada);
-  const qtdAvulsasPorUsuario = contarPorUsuario(usoAvulsas);
-  const saldoSimplesPorUsuario = somarPorUsuario(recargasSimplesAtivas, "creditos_restantes");
-  const saldoAvancadaPorUsuario = somarPorUsuario(recargasAvancadaAtivas, "creditos_restantes");
-  const saldoAvulsasPorUsuario = new Map(
-    (saldosAvulsas ?? []).map((s) => [s.user_id, s.saldo_centavos as number])
-  );
 
   // Faturas — busca uma vez pra conta inteira do Stripe e agrupa por
   // cliente, em vez de uma chamada por despachante.
@@ -198,9 +151,6 @@ export default async function AdminPage() {
       const faturas = sub?.stripe_customer_id
         ? (faturasPorCliente.get(sub.stripe_customer_id) ?? [])
         : [];
-      const gastoTotal = faturas
-        .filter((f) => f.status === "paid")
-        .reduce((soma, f) => soma + f.valor, 0);
       const ultimoAcesso = d.last_seen_at ? new Date(d.last_seen_at) : null;
       const online = ultimoAcesso ? agora.getTime() - ultimoAcesso.getTime() < 5 * 60 * 1000 : false;
       return {
@@ -209,19 +159,8 @@ export default async function AdminPage() {
         plano,
         uso,
         faturas,
-        gastoTotal,
         ultimoAcesso,
         online,
-        quantidades: {
-          simples: qtdSimplesPorUsuario.get(d.id) ?? 0,
-          avancada: qtdAvancadaPorUsuario.get(d.id) ?? 0,
-          avulsas: qtdAvulsasPorUsuario.get(d.id) ?? 0,
-        },
-        saldos: {
-          simples: saldoSimplesPorUsuario.get(d.id) ?? 0,
-          avancada: saldoAvancadaPorUsuario.get(d.id) ?? 0,
-          avulsasCentavos: saldoAvulsasPorUsuario.get(d.id) ?? 0,
-        },
       };
     })
   );
@@ -349,20 +288,15 @@ export default async function AdminPage() {
             <thead>
               <tr>
                 <th>Despachante</th>
-                <th>Cadastrado em</th>
                 <th>Plano</th>
-                <th>Status</th>
                 <th>Uso no período</th>
-                <th>Consultas</th>
-                <th>Saldos disponíveis</th>
-                <th>Gastos</th>
                 <th>Acesso</th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
               {linhas.map(
-                ({ despachante, sub, plano, uso, faturas, gastoTotal, ultimoAcesso, online, quantidades, saldos }) => {
+                ({ despachante, sub, plano, uso, faturas, ultimoAcesso, online }) => {
                 const temAcesso = sub?.status === "active" || sub?.status === "trialing";
                 const ehManual = temAcesso && !sub?.stripe_subscription_id;
                 // Diferencia o teste temporário (PLANO_TESTE, criado em "Criar
@@ -378,7 +312,10 @@ export default async function AdminPage() {
                       <div style={{ fontSize: 12, color: "var(--muted)" }}>
                         {despachante.email}
                       </div>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                        Cadastrado em {dataCurta.format(new Date(despachante.created_at))}
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
                         <Link href={`/admin/usuario/${despachante.id}`} style={{ fontSize: 11 }}>
                           Ver conta
                         </Link>
@@ -424,62 +361,28 @@ export default async function AdminPage() {
                         </details>
                       )}
                     </td>
-                    <td>{dataHora.format(new Date(despachante.created_at))}</td>
-                    <td>{plano?.nome ?? "—"}</td>
                     <td>
-                      {ehManual ? (
-                        <>
-                          <span className="badge neutral">
-                            {ehTeste ? "Acesso manual (teste)" : "Acesso manual (fixo)"}
-                          </span>
-                          {sub?.current_period_end && (
-                            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                              até {dataCurta.format(new Date(sub.current_period_end))}
-                            </div>
-                          )}
-                        </>
-                      ) : status ? (
-                        <span className={`badge ${status.badge}`}>{status.texto}</span>
-                      ) : (
-                        <span className="badge neutral">Sem assinatura</span>
-                      )}
+                      <div>{plano?.nome ?? "—"}</div>
+                      <div style={{ marginTop: 4 }}>
+                        {ehManual ? (
+                          <>
+                            <span className="badge neutral">
+                              {ehTeste ? "Acesso manual (teste)" : "Acesso manual (fixo)"}
+                            </span>
+                            {sub?.current_period_end && (
+                              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                                até {dataCurta.format(new Date(sub.current_period_end))}
+                              </div>
+                            )}
+                          </>
+                        ) : status ? (
+                          <span className={`badge ${status.badge}`}>{status.texto}</span>
+                        ) : (
+                          <span className="badge neutral">Sem assinatura</span>
+                        )}
+                      </div>
                     </td>
                     <td>{plano ? `${uso}/${plano.cota}` : "—"}</td>
-                    <td>
-                      <div className="admin-stat-list">
-                        <div className="admin-stat-row">
-                          <span className="admin-stat-label">Simples:</span>
-                          <span className="admin-stat-value">{quantidades.simples}</span>
-                        </div>
-                        <div className="admin-stat-row">
-                          <span className="admin-stat-label">Avançada:</span>
-                          <span className="admin-stat-value">{quantidades.avancada}</span>
-                        </div>
-                        <div className="admin-stat-row">
-                          <span className="admin-stat-label">Avulsas:</span>
-                          <span className="admin-stat-value">{quantidades.avulsas}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="admin-stat-list">
-                        <div className="admin-stat-row">
-                          <span className="admin-stat-label">Simples:</span>
-                          <span className="admin-stat-value">{saldos.simples} créditos</span>
-                        </div>
-                        <div className="admin-stat-row">
-                          <span className="admin-stat-label">Avançada:</span>
-                          <span className="admin-stat-value">{saldos.avancada} créditos</span>
-                        </div>
-                        <div className="admin-stat-row">
-                          <span className="admin-stat-label">Avulsas:</span>
-                          <span className="admin-stat-value">
-                            {currency.format(saldos.avulsasCentavos / 100)}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{currency.format(gastoTotal)}</td>
                     <td>
                       <span className={`badge ${online ? "ok" : "neutral"}`}>
                         {online ? "Online" : "Offline"}

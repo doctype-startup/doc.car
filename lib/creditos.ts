@@ -145,6 +145,50 @@ export async function concederCreditoManual(params: {
   }
 }
 
+/** Retira até `creditos` créditos do despachante — pra corrigir uma
+ * concessão feita errada, ou qualquer ajuste manual pra menos. Consome das
+ * recargas mais próximas de expirar primeiro (mesma ordem de
+ * consumirCredito), nunca deixa nenhuma ficar negativa, e simplesmente para
+ * quando não sobra mais nada pra retirar (não falha se pedir mais do que o
+ * despachante tem — retira só o que existe). Retorna quantos créditos
+ * foram realmente retirados. */
+export async function retirarCreditoManual(userId: string, creditos: number): Promise<number> {
+  const admin = createAdminClient();
+  let restanteParaRetirar = creditos;
+
+  // Teto de iterações só pra nunca girar pra sempre em caso de colisão
+  // concorrente repetida — numa ação manual de admin, isso nunca deveria
+  // nem chegar perto.
+  for (let tentativa = 0; tentativa < 100 && restanteParaRetirar > 0; tentativa++) {
+    const { data } = await admin
+      .from("recargas_simples")
+      .select("id, creditos_restantes")
+      .eq("user_id", userId)
+      .gt("creditos_restantes", 0)
+      .gt("expira_em", new Date().toISOString())
+      .order("expira_em", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (!data) break;
+
+    const retiradosDessaRecarga = Math.min(data.creditos_restantes, restanteParaRetirar);
+    const { data: atualizado } = await admin
+      .from("recargas_simples")
+      .update({ creditos_restantes: data.creditos_restantes - retiradosDessaRecarga })
+      .eq("id", data.id)
+      .eq("creditos_restantes", data.creditos_restantes)
+      .select("id")
+      .maybeSingle();
+
+    if (!atualizado) continue; // outra requisição mexeu nessa recarga — tenta de novo
+
+    restanteParaRetirar -= retiradosDessaRecarga;
+  }
+
+  return creditos - restanteParaRetirar;
+}
+
 /** Zera o saldo de créditos do usuário — chamada quando a assinatura é
  * cancelada (créditos de recarga não sobrevivem ao cancelamento). */
 export async function expirarCreditosPorCancelamento(userId: string) {

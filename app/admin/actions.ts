@@ -5,9 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getPlanoPorId, PLANO_TESTE } from "@/lib/plans";
-import { expirarCreditosPorCancelamento, concederCreditoManual } from "@/lib/creditos";
-import { concederCreditoManualAvancada } from "@/lib/creditos-avancada";
-import { concederSaldoAvulsasManual } from "@/lib/saldo-avulsas";
+import {
+  expirarCreditosPorCancelamento,
+  concederCreditoManual,
+  retirarCreditoManual,
+} from "@/lib/creditos";
+import { concederCreditoManualAvancada, retirarCreditoManualAvancada } from "@/lib/creditos-avancada";
+import { concederSaldoAvulsasManual, getSaldoAvulsas, debitarSaldoAvulsas } from "@/lib/saldo-avulsas";
 
 async function exigirAdmin() {
   const supabase = await createClient();
@@ -261,6 +265,7 @@ export async function concederCreditoManualAdmin(userId: string, formData: FormD
   await exigirAdmin();
 
   const tipo = String(formData.get("tipo") || "");
+  const direcao = String(formData.get("direcao") || "conceder");
   const quantidade = Number(formData.get("quantidade"));
   const bonus = formData.get("bonus") === "on";
 
@@ -268,7 +273,20 @@ export async function concederCreditoManualAdmin(userId: string, formData: FormD
     throw new Error("Informe uma quantidade válida.");
   }
 
-  if (tipo === "simples") {
+  if (direcao === "retirar") {
+    if (tipo === "simples") {
+      await retirarCreditoManual(userId, Math.round(quantidade));
+    } else if (tipo === "avancada") {
+      await retirarCreditoManualAvancada(userId, Math.round(quantidade));
+    } else if (tipo === "avulsas") {
+      const admin = createAdminClient();
+      const saldoAtual = await getSaldoAvulsas(admin, userId);
+      const valorCentavos = Math.min(Math.round(quantidade * 100), saldoAtual);
+      if (valorCentavos > 0) await debitarSaldoAvulsas(userId, valorCentavos);
+    } else {
+      throw new Error("Tipo de crédito inválido.");
+    }
+  } else if (tipo === "simples") {
     await concederCreditoManual({ userId, creditos: Math.round(quantidade), bonus });
   } else if (tipo === "avancada") {
     await concederCreditoManualAvancada({ userId, creditos: Math.round(quantidade), bonus });
