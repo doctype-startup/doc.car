@@ -6,7 +6,12 @@ import ConfirmSubmitButton from "./confirm-submit-button";
 import WhatsappAcessoButton from "./whatsapp-acesso-button";
 import CopiarLinkButton from "./copiar-link-button";
 import CreditoForm from "./credito-form";
-import { revogarAcesso, revogarEExcluirDados, concederAcessoManual } from "./actions";
+import {
+  revogarAcesso,
+  revogarEExcluirDados,
+  concederAcessoManual,
+  entrarComoUsuario,
+} from "./actions";
 
 /** Menu suspenso com todas as ações de um despachante — mesmo padrão do
  * menu "Consultas Avulsas" do dashboard (botão + painel flutuante que
@@ -65,6 +70,12 @@ export default function AcoesDespachanteMenu({
         <div className="admin-acoes-panel" role="menu">
           <WhatsappAcessoButton nome={despachante.name} email={despachante.email} />
           <CopiarLinkButton email={despachante.email} />
+
+          <form action={entrarComoUsuario.bind(null, despachante.id)}>
+            <button type="submit" className="secondary-button" style={{ fontSize: 12, width: "100%" }}>
+              Entrar como despachante
+            </button>
+          </form>
 
           <CreditoForm userId={despachante.id} />
 

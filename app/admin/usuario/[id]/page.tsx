@@ -15,6 +15,7 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import OcultarPrecosCheckbox from "./ocultar-precos-checkbox";
 import CobrarConsultaSimplesCheckbox from "./cobrar-consulta-simples-checkbox";
 import CreditoForm from "../../credito-form";
+import { entrarComoUsuario } from "../../actions";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 // Server component — sem timeZone, o runtime (UTC na Vercel) formataria
@@ -233,12 +234,29 @@ export default async function AdminUsuarioPage({
       </header>
       <div className="orange-line" />
       <main className="app-content">
-        <h2 style={{ marginBottom: 4 }}>{despachante.name}</h2>
-        <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
-          {despachante.email} · Visão de suporte/manutenção. Outras ações de conta (revogar
-          acesso, excluir dados) continuam na{" "}
-          <Link href="/admin">listagem principal</Link>.
-        </p>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          <div>
+            <h2 style={{ marginBottom: 4 }}>{despachante.name}</h2>
+            <p style={{ fontSize: 12, color: "var(--muted)" }}>
+              {despachante.email} · Visão de suporte/manutenção. Outras ações de conta (revogar
+              acesso, excluir dados) continuam na{" "}
+              <Link href="/admin">listagem principal</Link>.
+            </p>
+          </div>
+          <form action={entrarComoUsuario.bind(null, despachante.id)}>
+            <button type="submit" className="secondary-button" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+              Entrar como despachante
+            </button>
+          </form>
+        </div>
 
         <div className="card" style={{ padding: 12, marginBottom: 20, maxWidth: 320 }}>
           <h3 style={{ marginBottom: 12, fontSize: 15 }}>Manipular créditos</h3>

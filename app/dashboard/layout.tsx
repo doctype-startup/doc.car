@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "./sign-out-button";
 import NavTabs from "./nav-tabs";
@@ -6,6 +7,9 @@ import GuardiaoHelper from "@/components/GuardiaoHelper";
 import { GuardiaoProvider } from "@/components/guardiao-context";
 import { getPlanoPorPriceId } from "@/lib/plans";
 import { contarUsoNoPeriodo } from "@/lib/uso-avancada";
+import { IMPERSONADOR_COOKIE } from "@/lib/impersonar";
+import { pararImpersonar } from "./parar-impersonar-action";
+import { diasAteVencimento, formatarDiaVencimento } from "@/lib/vencimento";
 
 export default async function DashboardLayout({
   children,
@@ -24,9 +28,13 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, email, is_admin")
+    .select("name, email, is_admin, created_at")
     .eq("id", user.id)
     .single();
+
+  const impersonando = Boolean((await cookies()).get(IMPERSONADOR_COOKIE)?.value);
+  const diasAteVenc = profile?.created_at ? diasAteVencimento(profile.created_at) : null;
+  const mostrarAvisoVencimento = diasAteVenc !== null && diasAteVenc >= 0 && diasAteVenc <= 3;
 
   const { data: subscription } = await supabase
     .from("subscriptions")
@@ -91,6 +99,26 @@ export default async function DashboardLayout({
           </div>
         </header>
         <div className="orange-line" />
+        {impersonando && (
+          <div className="conta-aviso impersonando">
+            <span>
+              Modo suporte: você está vendo como <strong>{profile?.name ?? profile?.email}</strong>.
+            </span>
+            <form action={pararImpersonar}>
+              <button type="submit">Parar e voltar ao admin</button>
+            </form>
+          </div>
+        )}
+        {mostrarAvisoVencimento && profile?.created_at && (
+          <div className="conta-aviso vencimento">
+            <span>
+              {diasAteVenc === 0
+                ? "Seu plano vence hoje"
+                : `Seu plano vence em ${diasAteVenc} dia${diasAteVenc === 1 ? "" : "s"}`}{" "}
+              ({formatarDiaVencimento(profile.created_at)}).
+            </span>
+          </div>
+        )}
         <main className="app-content">{children}</main>
         <GuardiaoHelper />
       </div>
