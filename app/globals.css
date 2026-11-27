@@ -1134,6 +1134,51 @@ button.wide {
   width: 100%;
 }
 
+/* Faixas de aviso do dashboard — modo "entrar como o usuário" (suporte) e
+ * aviso de vencimento do plano (lib/vencimento.ts). */
+.conta-aviso {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.conta-aviso.impersonando {
+  background: var(--doctype-navy);
+  color: #fff;
+}
+
+.conta-aviso.vencimento {
+  background: #fff4e5;
+  color: #8a5300;
+  border-bottom: 1px solid #ffd79a;
+}
+
+.conta-aviso button {
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.conta-aviso.impersonando button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.conta-aviso.vencimento button:hover {
+  background: rgba(138, 83, 0, 0.08);
+}
+
 .empty-state .guardiao {
   width: 128px;
   height: 128px;

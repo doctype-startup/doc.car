@@ -1,8 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { IMPERSONADOR_COOKIE } from "@/lib/impersonar";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { getPlanoPorId, PLANO_TESTE } from "@/lib/plans";
 import {
@@ -320,6 +323,81 @@ export async function definirOcultarPrecosLogin(userId: string, formData: FormDa
   if (error) throw new Error(error.message);
 
   revalidatePath(`/admin/usuario/${userId}`);
+}
+
+/** "Entrar como o usuário" — pra suporte, quando é mais rápido ver e mexer
+ * no dashboard exatamente como o despachante vê do que tentar reproduzir o
+ * problema só pela "Ver conta" (que é só leitura). Gera um magic link pro
+ * e-mail do despachante com a service role (sem precisar da senha dele) e
+ * consome esse link na hora, trocando a sessão do navegador do admin pela
+ * sessão dele. A sessão original do admin fica salva num cookie separado
+ * (ver lib/impersonar.ts) pra dar pra voltar depois, com pararImpersonar
+ * (app/dashboard/parar-impersonar-action.ts). */
+export async function entrarComoUsuario(userId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user: adminUser },
+  } = await supabase.auth.getUser();
+  if (!adminUser) throw new Error("Não autenticado.");
+
+  const { data: profileAdmin } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", adminUser.id)
+    .single();
+  if (!profileAdmin?.is_admin) throw new Error("Acesso negado.");
+
+  if (userId === adminUser.id) {
+    throw new Error("Você já está logado como você mesmo.");
+  }
+
+  const {
+    data: { session: sessaoAdmin },
+  } = await supabase.auth.getSession();
+  if (!sessaoAdmin) throw new Error("Sessão de admin inválida.");
+
+  const admin = createAdminClient();
+  const { data: despachante } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!despachante?.email) throw new Error("Despachante não encontrado.");
+
+  const { data: link, error: erroLink } = await admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: despachante.email,
+  });
+  const hashedToken = link?.properties?.hashed_token;
+  if (erroLink || !hashedToken) {
+    throw new Error(`Não foi possível gerar o acesso: ${erroLink?.message ?? "token ausente"}`);
+  }
+
+  const { error: erroVerify } = await supabase.auth.verifyOtp({
+    token_hash: hashedToken,
+    type: "magiclink",
+  });
+  if (erroVerify) {
+    throw new Error(`Não foi possível entrar como o despachante: ${erroVerify.message}`);
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(
+    IMPERSONADOR_COOKIE,
+    JSON.stringify({
+      accessToken: sessaoAdmin.access_token,
+      refreshToken: sessaoAdmin.refresh_token,
+    }),
+    {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 4,
+    }
+  );
+
+  redirect("/dashboard");
 }
 
 /** Liga/desliga a cobrança da consulta simples mesmo dentro da cota do
