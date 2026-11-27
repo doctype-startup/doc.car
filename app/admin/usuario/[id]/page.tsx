@@ -2,13 +2,19 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPlanoPorPriceId, PLANO_TESTE, PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS } from "@/lib/plans";
+import {
+  getPlanoPorPriceId,
+  PLANO_TESTE,
+  PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS,
+  PRECO_AVULSO_CENTAVOS,
+} from "@/lib/plans";
 import { getSaldoAvulsas } from "@/lib/saldo-avulsas";
 import { listarVeiculos } from "@/lib/meus-veiculos";
 import { getConsultaAvulsaPorId } from "@/lib/consultas-avulsas";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import OcultarPrecosCheckbox from "./ocultar-precos-checkbox";
 import CobrarConsultaSimplesCheckbox from "./cobrar-consulta-simples-checkbox";
+import CreditoForm from "../../credito-form";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 // Server component — sem timeZone, o runtime (UTC na Vercel) formataria
@@ -141,6 +147,7 @@ export default async function AdminUsuarioPage({
     { count: qtdAvulsas },
     { data: recargasSimplesAtivas },
     { data: recargasAvancadaAtivas },
+    { data: avulsasTodas },
     faturas,
   ] = await Promise.all([
     getSaldoAvulsas(admin, id),
@@ -175,6 +182,7 @@ export default async function AdminUsuarioPage({
       .eq("user_id", id)
       .gt("creditos_restantes", 0)
       .gt("expira_em", agora),
+    admin.from("consultas_avulsas_uso").select("preco_centavos").eq("user_id", id),
     buscarFaturas(sub?.stripe_customer_id ?? null),
   ]);
 
@@ -189,6 +197,21 @@ export default async function AdminUsuarioPage({
   const gastoTotal = faturas
     .filter((f) => f.status === "paid")
     .reduce((soma, f) => soma + f.valor, 0);
+
+  // Valor "preço cheio": quanto essas consultas valem pro cliente (o preço
+  // que aparece pra ele), não o custo real pra DOCTYPE — e não depende de
+  // ter gerado fatura ou não (cota do plano, crédito manual etc. não geram
+  // fatura, mas têm valor igual). Avulsas já tem o preço real cobrado
+  // registrado por consulta; simples e avançada usam o preço avulso/cheio
+  // de cada uma, multiplicado pela quantidade.
+  const valorSimplesCentavos = (qtdSimples ?? 0) * PRECO_CONSULTA_SIMPLES_SEMPRE_CENTAVOS;
+  const valorAvancadaCentavos = (qtdAvancada ?? 0) * PRECO_AVULSO_CENTAVOS;
+  const valorAvulsasCentavos = (avulsasTodas ?? []).reduce(
+    (soma, a) => soma + a.preco_centavos,
+    0
+  );
+  const valorConsumidoTotalCentavos =
+    valorSimplesCentavos + valorAvancadaCentavos + valorAvulsasCentavos;
 
   const plano = getPlanoPorPriceId(sub?.price_id);
   const status = sub?.status ? STATUS_LABEL[sub.status] : undefined;
@@ -212,10 +235,15 @@ export default async function AdminUsuarioPage({
       <main className="app-content">
         <h2 style={{ marginBottom: 4 }}>{despachante.name}</h2>
         <p style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
-          {despachante.email} · Visão de suporte/manutenção. Ações de conta (revogar acesso,
-          conceder crédito, excluir dados) continuam na{" "}
+          {despachante.email} · Visão de suporte/manutenção. Outras ações de conta (revogar
+          acesso, excluir dados) continuam na{" "}
           <Link href="/admin">listagem principal</Link>.
         </p>
+
+        <div className="card" style={{ padding: 12, marginBottom: 20, maxWidth: 320 }}>
+          <h3 style={{ marginBottom: 12, fontSize: 15 }}>Manipular créditos</h3>
+          <CreditoForm userId={despachante.id} />
+        </div>
 
         <div className="card" style={{ padding: 12, marginBottom: 20, maxWidth: 420 }}>
           <OcultarPrecosCheckbox
@@ -300,7 +328,7 @@ export default async function AdminUsuarioPage({
           )}
         </div>
 
-        <div className="grid-3" style={{ marginBottom: 24 }}>
+        <div className="grid-2" style={{ marginBottom: 24 }}>
           <div className="card">
             <h3 style={{ marginBottom: 12, fontSize: 15 }}>Consultas (total)</h3>
             <div className="admin-stat-list">
@@ -332,6 +360,34 @@ export default async function AdminUsuarioPage({
               <div className="admin-stat-row">
                 <span className="admin-stat-label">Avulsas:</span>
                 <span className="admin-stat-value">{currency.format(saldoAvulsasCentavos / 100)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="card">
+            <h3 style={{ marginBottom: 4, fontSize: 15 }}>Valor consumido (preço cheio)</h3>
+            <p style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 12 }}>
+              Quanto essas consultas valem pelo preço que aparece pro cliente — não o custo real
+              pra DOCTYPE, e descontado aqui mesmo quando veio de cota do plano ou crédito manual
+              (não gera fatura, mas tem o mesmo valor).
+            </p>
+            <div className="admin-stat-list">
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Simples:</span>
+                <span className="admin-stat-value">{currency.format(valorSimplesCentavos / 100)}</span>
+              </div>
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Avançada:</span>
+                <span className="admin-stat-value">{currency.format(valorAvancadaCentavos / 100)}</span>
+              </div>
+              <div className="admin-stat-row">
+                <span className="admin-stat-label">Avulsas:</span>
+                <span className="admin-stat-value">{currency.format(valorAvulsasCentavos / 100)}</span>
+              </div>
+              <div className="admin-stat-row" style={{ fontWeight: 700 }}>
+                <span className="admin-stat-label">Total:</span>
+                <span className="admin-stat-value">
+                  {currency.format(valorConsumidoTotalCentavos / 100)}
+                </span>
               </div>
             </div>
           </div>
